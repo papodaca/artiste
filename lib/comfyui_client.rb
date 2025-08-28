@@ -106,7 +106,7 @@ class ComfyuiClient
       "1:2.4" => [640, 1536]
     }
     
-    if aspect_ratios.key?(aspect_ratio)
+    if aspect_ratios.key?(aspect_ratio) && base_size == 1024
       aspect_ratios[aspect_ratio]
     else
       # Try to parse custom ratios like "16:9"
@@ -148,11 +148,17 @@ class ComfyuiClient
     
     # Remove parameters from prompt and store clean prompt
     clean_prompt = full_prompt.dup
+
+    basesize = 1024
+    if match = full_prompt.match(/--basesize\s+(\d+)/)
+      basesize = match[1].to_i
+      clean_prompt.gsub!(/--basesize\s+\d+/, "")
+    end
     
     # Extract aspect ratio first (this may override width/height)
     if match = full_prompt.match(/--ar\s+([^\s-]+)/)
       params[:aspect_ratio] = match[1]
-      width, height = aspect_ratio_to_dimensions(params[:aspect_ratio])
+      width, height = aspect_ratio_to_dimensions(params[:aspect_ratio], base_size: basesize)
       params[:width] = width
       params[:height] = height
       clean_prompt.gsub!(/--ar\s+[^\s-]+/, "")
