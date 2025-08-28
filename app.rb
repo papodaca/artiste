@@ -1,12 +1,12 @@
 require_relative "config/environment"
 require_relative "lib/mattermost_server_strategy"
 
-mattermost_url = ENV["MATTERMOST_URL"]
-mattermost_token = ENV["MATTERMOTS_TOKEN"]
 
 EM.run do
   mattermost = MattermostServerStrategy.new(
-    {mattermost_url:, mattermost_token:}
+    mattermost_url: ENV["MATTERMOST_URL"],
+    mattermost_token: ENV["MATTERMOST_TOKEN"],
+    mattermost_channels: ENV.fetch("MATTERMOST_CHANNELS", "").split(",")
   )
   mattermost.connect do |message|
     reply = mattermost.respond(message, "Image generation queued")

@@ -7,5 +7,6 @@ class MattermostClient
       "Authorization" => "Bearer #{token}",
       "Accept" => "application/json"
     })
+    self
   end
 end
