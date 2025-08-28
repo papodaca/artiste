@@ -158,7 +158,7 @@ class ComfyuiClient
     # Extract aspect ratio first (this may override width/height)
     if match = full_prompt.match(/--ar\s+([^\s-]+)/)
       params[:aspect_ratio] = match[1]
-      width, height = aspect_ratio_to_dimensions(params[:aspect_ratio], base_size: basesize)
+      width, height = aspect_ratio_to_dimensions(params[:aspect_ratio], basesize)
       params[:width] = width
       params[:height] = height
       clean_prompt.gsub!(/--ar\s+[^\s-]+/, "")
