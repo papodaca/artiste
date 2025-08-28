@@ -1,96 +1,20 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    ast (2.4.2)
-    base64 (0.2.0)
-    bigdecimal (3.1.8)
-    coderay (1.1.3)
-    concurrent-ruby (1.2.3)
-    connection_pool (2.4.1)
-    csv (3.3.0)
+    bigdecimal (3.2.2)
+    csv (3.3.5)
     eventmachine (1.2.7)
-    httparty (0.22.0)
+    httparty (0.23.1)
       csv
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
-    json (2.7.2)
-    language_server-protocol (3.17.0.3)
-    lint_roller (1.1.0)
-    method_source (1.1.0)
+    json (2.13.2)
     mini_mime (1.1.5)
-    multi_xml (0.7.1)
+    multi_xml (0.7.2)
       bigdecimal (~> 3.1)
-    mustermann (3.0.0)
-      ruby2_keywords (~> 0.0.1)
-    parallel (1.24.0)
-    parser (3.3.1.0)
-      ast (~> 2.4.1)
-      racc
-    pry (0.14.2)
-      coderay (~> 1.1)
-      method_source (~> 1.0)
-    racc (1.7.3)
-    rack (3.0.11)
-    rack-protection (4.0.0)
-      base64 (>= 0.1.0)
-      rack (>= 3.0.0, < 4)
-    rack-session (2.0.0)
-      rack (>= 3.0.0)
-    rainbow (3.1.1)
-    rake (13.2.1)
-    redis (5.2.0)
-      redis-client (>= 0.22.0)
-    redis-client (0.22.1)
-      connection_pool
-    regexp_parser (2.9.2)
-    rexml (3.2.8)
-      strscan (>= 3.0.9)
-    rubocop (1.63.5)
-      json (~> 2.3)
-      language_server-protocol (>= 3.17.0)
-      parallel (~> 1.10)
-      parser (>= 3.3.0.2)
-      rainbow (>= 2.2.2, < 4.0)
-      regexp_parser (>= 1.8, < 3.0)
-      rexml (>= 3.2.5, < 4.0)
-      rubocop-ast (>= 1.31.1, < 2.0)
-      ruby-progressbar (~> 1.7)
-      unicode-display_width (>= 2.4.0, < 3.0)
-    rubocop-ast (1.31.3)
-      parser (>= 3.3.1.0)
-    rubocop-performance (1.21.0)
-      rubocop (>= 1.48.1, < 2.0)
-      rubocop-ast (>= 1.31.1, < 2.0)
-    ruby-progressbar (1.13.0)
-    ruby2_keywords (0.0.5)
-    sidekiq (7.2.4)
-      concurrent-ruby (< 2)
-      connection_pool (>= 2.3.0)
-      rack (>= 2.2.4)
-      redis-client (>= 0.19.0)
-    sinatra (4.0.0)
-      mustermann (~> 3.0)
-      rack (>= 3.0.0, < 4)
-      rack-protection (= 4.0.0)
-      rack-session (>= 2.0.0, < 3)
-      tilt (~> 2.0)
-    standard (1.36.0)
-      language_server-protocol (~> 3.17.0.2)
-      lint_roller (~> 1.0)
-      rubocop (~> 1.63.0)
-      standard-custom (~> 1.0.0)
-      standard-performance (~> 1.4)
-    standard-custom (1.0.2)
-      lint_roller (~> 1.0)
-      rubocop (~> 1.50)
-    standard-performance (1.4.0)
-      lint_roller (~> 1.1)
-      rubocop-performance (~> 1.21.0)
-    strscan (3.1.0)
-    tilt (2.3.0)
-    unicode-display_width (2.5.0)
-    uri (0.13.0)
-    websocket (1.2.10)
+    ostruct (0.6.3)
+    uri (1.0.3)
+    websocket (1.2.11)
     websocket-eventmachine-base (1.2.0)
       eventmachine (~> 1.0)
       websocket (~> 1.0)
@@ -98,32 +22,16 @@ GEM
     websocket-eventmachine-client (1.3.0)
       websocket-eventmachine-base (~> 1.0)
     websocket-native (1.0.0)
-    yaml (0.3.0)
 
 PLATFORMS
-  aarch64-linux-gnu
-  aarch64-linux-musl
-  arm-linux-gnu
-  arm-linux-musl
-  arm64-darwin
-  x86-linux-gnu
-  x86-linux-musl
-  x86_64-darwin
-  x86_64-linux-gnu
-  x86_64-linux-musl
+  x86_64-linux
 
 DEPENDENCIES
   httparty
   json
-  pry
-  rake
-  redis
-  sidekiq
-  sinatra
-  standard
+  ostruct
   uri
   websocket-eventmachine-client
-  yaml
 
 BUNDLED WITH
    2.5.3

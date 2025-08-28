@@ -43,7 +43,6 @@ class MattermostServerStrategy < ServerStrategy
       msg_data = JSON.parse(msg)
       msg_data["data"]["mentions"] = JSON.parse(msg_data.dig("data", "mentions")) if msg_data.dig("data", "mentions") != nil
       msg_data["data"]["post"] = JSON.parse(msg_data.dig("data", "post")) if msg_data.dig("data", "post") != nil
-      puts msg_data
       @messages_sequence = msg["seq"]
 
       if msg_data["event"] == "posted"
@@ -104,13 +103,27 @@ class MattermostServerStrategy < ServerStrategy
   end
 
   def upload_file(channel_id, file, filename)
-    query = {channel_id:}
-    query[:filename] = filename if !filename.nil?
+    # Create a proper multipart form for file upload
+    # HTTParty requires the file to be wrapped in a File-like object or use multipart option
+    # 
+    File.write(filename, file)
+    file = File.open(filename, "rb")
+
+    multipart_data = {
+      channel_id: channel_id,
+      files: file.respond_to?(:read) ? file : File.open(file, 'rb')
+    }
+    
     new_files = @client.post(
       "/files",
-      query:,
-      body: file
+      query: {
+        channel_id: channel_id,
+        filename: filename || "generated.png"
+      },
+      multipart: true,
+      body: multipart_data
     )
+    FileUtils.rm(filename)
     new_files["file_infos"].map { |f| f["id"] }
   end
 end
