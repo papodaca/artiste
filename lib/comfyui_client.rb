@@ -3,10 +3,25 @@ require "fileutils"
 class ComfyuiClient
   include HTTParty
 
-  def initialize(comfyui_url, token = nil, workflow_path = 'workflow.json')
+  DEFAULT ={
+    flux: {
+      width: 1024,
+      height: 1024,
+      steps: 2
+    },
+    qwen: {
+      steps: 50,
+      width: 1328,
+      height: 1328,
+      shift: 3.1,
+    },
+  }
+
+  def initialize(comfyui_url, token = nil, workflow_path = 'workflows')
     @base_url = comfyui_url
     @token = token
-    @workflow_template = load_workflow_template(workflow_path)
+    @workflow_path = workflow_path
+    
     self.class.base_uri(@base_url)
     
     # Don't set headers globally, we'll set them per request
@@ -138,16 +153,20 @@ class ComfyuiClient
   def parse_prompt_parameters(full_prompt)
     # Extract parameters using regex
     params = {
-      width: 1024,
-      height: 1024, 
-      steps: 2,
+      model: "flux",
       seed: rand(1000000000),
       negative_prompt: "",
-      aspect_ratio: nil
-    }
+    }.merge(DEFAULT[:flux])
     
     # Remove parameters from prompt and store clean prompt
     clean_prompt = full_prompt.dup
+
+    if match = full_prompt.match(/--model\s+(\w+)/)
+      params[:model] = match[1].to_s
+      default_params = DEFAULT[params[:model].to_sym]
+      params.merge!(default_params) if !default_params.nil?
+      clean_prompt.gsub!(/--model\s+(\w+)/, "")
+    end
 
     basesize = 1024
     if match = full_prompt.match(/--basesize\s+(\d+)/)
@@ -162,6 +181,11 @@ class ComfyuiClient
       params[:width] = width
       params[:height] = height
       clean_prompt.gsub!(/--ar\s+[^\s-]+/, "")
+    end
+
+    if match = full_prompt.match(/--shift\s+(\d+.?\d*)/)
+      params[:shift] = match[1].to_f
+      clean_prompt.gsub!(/--shift\s+(\d+.?\d*)/, "")
     end
     
     # Extract width (this will override aspect ratio width if specified)
@@ -186,8 +210,6 @@ class ComfyuiClient
     if match = full_prompt.match(/--seed\s+(\d+)/)
       params[:seed] = match[1].to_i
       clean_prompt.gsub!(/--seed\s+\d+/, "")
-    else
-      params[:seed] = rand(1000000000)
     end
     
     # Extract negative prompt
@@ -199,76 +221,53 @@ class ComfyuiClient
     # Clean up extra whitespace
     clean_prompt = clean_prompt.gsub(/\s+/, " ").strip
     
-    {
-      prompt: clean_prompt,
-      width: params[:width],
-      height: params[:height],
-      steps: params[:steps],
-      seed: params[:seed],
-      negative_prompt: params[:negative_prompt]
-    }
+    params.merge({
+      prompt: clean_prompt
+    })
   end
 
   # Create workflow from template with parameter injection  
-  def create_workflow_from_template(params = {})
-    # Set default values
-    defaults = {
-      prompt: "",
-      n_prompt: "", 
-      width: 1024,
-      height: 1024,
-      steps: 2,
-      seed: nil
-    }
-    
-    # Merge with defaults
-    final_params = defaults.merge(params)
-    # Clone the template to avoid modifying the original
-    workflow = JSON.parse(JSON.generate(@workflow_template))
+  def create_workflow_from_template(model, params)
+    workflow = load_workflow_template("#{@workflow_path}/workflow_#{model}.json")
     
     # Remove x-params from the workflow as it's only for our reference
-    x_params = workflow.delete("x-params") || {}
+    x_params = workflow.delete("x-params")
+
+    output = x_params.delete("output")
+
+    raise "Workflow file does not contain expected options" if x_params.nil? || output.nil?
     
     # Set parameters using x-params mapping
     x_params.each do |param_key, node_id|
       next unless workflow[node_id]
       
       param_symbol = param_key.to_sym
-      next unless final_params.key?(param_symbol)
+      next unless params.key?(param_symbol)
       
-      value = final_params[param_symbol]
+      value = params[param_symbol]
       
       # Handle special cases
-      case param_key
-      when "prompt", "n_prompt"
+      if %w[prompt negative_prompt].include?(param_key)
         workflow[node_id]["inputs"]["text"] = value.to_s
       else
         workflow[node_id]["inputs"]["value"] = value
       end
     end
     
-    workflow
+    [workflow, output]
   end
 
   # Create workflow with automatic parameter parsing from prompt
-  def create_workflow_with_parsed_params(full_prompt, negative_prompt = "")
+  def create_workflow_with_parsed_params(full_prompt)
     parsed = parse_prompt_parameters(full_prompt)
-    # Use parsed negative prompt if available, otherwise fall back to parameter
-    final_negative_prompt = parsed[:negative_prompt].empty? ? negative_prompt : parsed[:negative_prompt]
     
-    create_workflow_from_template({
-      prompt: parsed[:prompt],
-      n_prompt: final_negative_prompt,
-      width: parsed[:width],
-      height: parsed[:height], 
-      steps: parsed[:steps],
-      seed: parsed[:seed]
-    })
+    workflow, output = create_workflow_from_template(parsed[:model], parsed)
+    [workflow, parsed.merge({output: output})]
   end
 
   # Poll for completion and return the generated image with parameter parsing
-  def generate_and_wait(full_prompt, negative_prompt = "", max_wait_seconds = 300)
-    workflow = create_workflow_with_parsed_params(full_prompt, negative_prompt)
+  def generate_and_wait(full_prompt, max_wait_seconds = 500)
+    workflow, params = create_workflow_with_parsed_params(full_prompt)
     result = queue_prompt(workflow)
     prompt_id = result["prompt_id"]
     
@@ -286,10 +285,13 @@ class ComfyuiClient
       status = get_prompt_status(prompt_id)
       
       if status && status[prompt_id] && status[prompt_id]["status"] && status[prompt_id]["status"]["completed"]
+        raise "Image generation didn't complete successfully" if status[prompt_id]["status"]["status_str"] != "success"
+        
         # Get the output images
+        output_id = params[:output]
         outputs = status[prompt_id]["outputs"]
-        if outputs && outputs["9"] && outputs["9"]["images"]
-          image_info = outputs["9"]["images"].first
+        if outputs && outputs[output_id] && outputs[output_id]["images"]
+          image_info = outputs[output_id]["images"].first
           if image_info
             image_data = get_image(image_info["filename"], image_info["subfolder"], image_info["type"])
             return {

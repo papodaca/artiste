@@ -13,7 +13,7 @@ EM.run do
   comfyui = ComfyuiClient.new(
     ENV["COMFYUI_URL"] || "http://localhost:8188",
     ENV["COMFYUI_TOKEN"],
-    "workflow.json"
+    "workflows"
   )
   
   mattermost.connect do |message|
