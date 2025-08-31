@@ -24,8 +24,6 @@ services:
   mattermost:
     ports:
       - 8065:8065
-      - 8443:8443/udp
-      - 8443:8443/tcp
     depends_on:
       - postgres
     image: mattermost/mattermost-team-edition:10.11.2
