@@ -60,6 +60,8 @@ class PromptParameterParser
       parse_set_settings_command($1)
     when '/get_settings'
       parse_get_settings_command
+    when %r{^/details\s+(.+)}
+      parse_details_command($1)
     when '/help'
       parse_help_command
     else
@@ -75,7 +77,6 @@ class PromptParameterParser
 
   def parse_set_settings_command(params_string)
     result = extract_parameters(params_string)
-    
     delete_keys = params_string.scan(/--delete\s+(\w+)/).map { |s| s[0].to_sym }
     
     {
@@ -158,6 +159,13 @@ class PromptParameterParser
     params[:height] = height
   end
 
+  def parse_details_command(image_name)
+    {
+      type: :get_details,
+      image_name: image_name.strip
+    }
+  end
+
   def parse_get_settings_command
     {
       type: :get_settings
@@ -191,6 +199,9 @@ class PromptParameterParser
           /set_settings --delete aspect_ratio
       
       /get_settings - Display current default settings
+      
+      /details <image_name|comfyui_prompt_id> - Show generation details for a specific image
+        Example: /details output_20241230_123456.png
       
       /help - Show this help message
       

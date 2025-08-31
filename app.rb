@@ -100,21 +100,42 @@ EM.run do
       # Handle regular image generation
       reply = mattermost.respond(message, "🎨 Image generation queued...")
       
+      # Create generation task record
+      user_params = user_settings.parsed_prompt_params
+      final_params = PromptParameterParser.resolve_params(parsed_params.merge(user_params))
+      
+      generation_task = GenerationTask.create(
+        user_id: user_id,
+        username: username,
+        prompt: full_prompt,
+        parameters: final_params.to_json,
+        workflow_type: final_params[:model] || 'flux',
+        status: 'pending'
+      )
+      debug_log("Created generation task ##{generation_task.id}")
+      
       EM.defer do
         begin
-          debug_log("Starting image generation process")
-          mattermost.update(message, reply, "🎨 Generating image... This may take a few minutes.")
-          user_params = user_settings.parsed_prompt_params
-          debug_log("User settings: #{user_params.inspect}")
+          debug_log("Queued image generation process for task ##{generation_task.id}")
           
-          # Override with user-provided parameters
-          final_params = PromptParameterParser.resolve_params(parsed_params.merge(user_params))
+          debug_log("User settings: #{user_params.inspect}")
           debug_log("Final parameters for generation: #{final_params.inspect}")
-          if $DEBUG_MODE
-            mattermost.update(message, reply, "🎨 Generating image... This may take a few minutes. #{final_params.to_json}")
+          
+          result = comfyui.generate_and_wait(final_params, 1.hour.seconds.to_i) do |state, comfy_prompt_id|
+            if comfy_prompt_id.present? && comfy_prompt_id != generation_task.comfy_prompt_id
+              generation_task.comfy_prompt_id = comfy_prompt_id
+              generation_task.save
+            end
+            if state == :running
+              debug_log("Starting image generation process for task ##{generation_task.id}")
+              generation_task.mark_processing
+              mattermost.update(message, reply, "🎨 Generating image... This may take a few minutes.#{$DEBUG_MODE ? final_params.to_json : ''}")
+            end
           end
-          result = comfyui.generate_and_wait(final_params)
-          debug_log("Image generation completed successfully")
+          debug_log("Image generation completed successfully for task ##{generation_task.id}")
+          
+          # Mark task as completed
+          generation_task.mark_completed(result[:filename])
           
           mattermost.update(
             message, 
@@ -129,6 +150,10 @@ EM.run do
           puts e.backtrace
           debug_log("Image generation error: #{e.message}")
           debug_log("Error backtrace: #{e.backtrace.join("\n")}")
+          
+          # Mark task as failed
+          generation_task.mark_failed(e.message)
+          
           mattermost.update(message, reply, error_msg)
           mattermost.respond(reply, "```#{error_msg}\n#{e.backtrace.join("\n")}```")
         end
@@ -144,6 +169,8 @@ EM.run do
       handle_set_settings_command(mattermost, message, parsed_result, user_settings)
     when :get_settings
       handle_get_settings_command(mattermost, message, user_settings)
+    when :get_details
+      handle_get_details_command(mattermost, message, parsed_result)
     when :help
       handle_help_command(mattermost, message, parsed_result)
     when :unknown_command
@@ -221,6 +248,78 @@ EM.run do
     debug_log("Retrieved user settings: #{user_settings.parsed_prompt_params.inspect}")
     
     mattermost.respond(message, "⚙️ **Current Settings:**\n#{settings_text.join("\n")}")
+  end
+
+  def handle_get_details_command(mattermost, message, parsed_result)
+    debug_log("Handling get details command")
+    image_name = parsed_result[:image_name]
+    debug_log("Looking up details for image: #{image_name}")
+    
+    # Look up generation task by output filename
+    task = GenerationTask.where(output_filename: image_name).first || GenerationTask.where(comfyui_prompt_id: image_name).first
+    
+    if task.nil?
+      debug_log("No generation task found for image: #{image_name}")
+      mattermost.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
+      return
+    end
+    
+    debug_log("Found generation task ##{task.id} for image: #{image_name}")
+    
+    # Build detailed response
+    details_text = []
+    details_text << "🖼️ **Generation Details for:** `#{image_name}`"
+    details_text << ""
+    details_text << "**Basic Info:**"
+    details_text << "• Task ID: ##{task.id}"
+    details_text << "• User: #{task.username} (#{task.user_id})"
+    details_text << "• Status: #{task.status.upcase}"
+    details_text << "• Workflow: #{task.workflow_type || 'N/A'}"
+    details_text << ""
+    
+    # Timing information
+    details_text << "**Timing:**"
+    details_text << "• Queued: #{task.queued_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.queued_at}"
+    details_text << "• Started: #{task.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.started_at}"
+    details_text << "• Completed: #{task.completed_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.completed_at}"
+    if task.processing_time_seconds
+      details_text << "• Processing Time: #{'%.2f' % task.processing_time_seconds}s"
+    end
+    details_text << ""
+
+    # Original prompt
+    details_text << "**Original Prompt:**"
+    details_text << "```"
+    details_text << task.prompt
+    details_text << "```"
+    details_text << ""
+
+    # Generation parameters
+    if task.parameters && !task.parameters.empty?
+      params = task.parsed_parameters
+      details_text << "**Generation Parameters:**"
+      details_text << "```json"
+      details_text << JSON.pretty_generate(params)
+      details_text << "```"
+      details_text << ""
+    end
+
+    # ComfyUI details
+    if task.comfyui_prompt_id
+      details_text << "**ComfyUI Info:**"
+      details_text << "• Prompt ID: #{task.comfyui_prompt_id}"
+      details_text << ""
+    end
+
+    # Error information if failed
+    if task.status == 'failed' && task.error_message
+      details_text << "**Error Details:**"
+      details_text << "```"
+      details_text << task.error_message
+      details_text << "```"
+    end
+
+    mattermost.respond(message, details_text.join("\n"))
   end
 
   def print_settings(out, settings)

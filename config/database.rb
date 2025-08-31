@@ -20,6 +20,29 @@ DB.create_table? :user_settings do
   DateTime :updated_at, default: Sequel::CURRENT_TIMESTAMP
 end
 
+# Create generation_tasks table if it doesn't exist
+DB.create_table? :generation_tasks do
+  primary_key :id
+  String :user_id, null: false
+  String :username
+  String :status, default: 'pending' # pending, processing, completed, failed
+  Text :prompt, null: false
+  Text :parameters # JSON string of generation parameters
+  String :workflow_type # flux, qwen, etc.
+  String :comfyui_prompt_id # ComfyUI's prompt ID for tracking
+  String :output_filename
+  Text :error_message # Error details if generation fails
+  DateTime :queued_at, default: Sequel::CURRENT_TIMESTAMP
+  DateTime :started_at
+  DateTime :completed_at
+  Float :processing_time_seconds
+  
+  index :user_id
+  index :status
+  index [:user_id, :status]
+  index :queued_at
+end
+
 # User Settings model
 class UserSettings < Sequel::Model(:user_settings)
   def before_update
@@ -41,6 +64,16 @@ class UserSettings < Sequel::Model(:user_settings)
     self.params = params.to_json
     value
   end
+
+  def delete_param(key)
+    params = parsed_prompt_params
+    if params.has_key?(key)
+      params.delete(key)
+      self.params = params.to_json
+      return true
+    end
+    false
+  end
   
   # Get user settings or create default ones
   def self.get_or_create_for_user(user_id, username = nil)
@@ -54,6 +87,65 @@ class UserSettings < Sequel::Model(:user_settings)
     end
     
     settings
+  end
+end
+
+# Generation Tasks model
+class GenerationTask < Sequel::Model(:generation_tasks)
+  def parsed_parameters
+    JSON.parse(self.parameters || '{}', symbolize_names: true) rescue {}
+  end
+  
+  def set_parameters(params_hash)
+    self.parameters = params_hash.to_json
+  end
+  
+  def mark_processing(comfyui_prompt_id = nil)
+    self.status = 'processing'
+    self.started_at = Time.now
+    self.comfyui_prompt_id = comfyui_prompt_id if comfyui_prompt_id.present?
+    self.save
+  end
+  
+  def mark_completed(output_filename = nil, comfyui_prompt_id = nil)
+    self.status = 'completed'
+    self.completed_at = Time.now
+    self.output_filename = output_filename if output_filename
+    if self.started_at
+      self.processing_time_seconds = (Time.now - self.started_at).to_f
+    end
+    self.save
+  end
+  
+  def mark_failed(error_message)
+    self.status = 'failed'
+    self.completed_at = Time.now
+    self.error_message = error_message
+    if self.started_at
+      self.processing_time_seconds = (Time.now - self.started_at).to_f
+    end
+    self.save
+  end
+  
+  # Class methods for querying
+  def self.for_user(user_id)
+    where(user_id: user_id).order(:queued_at)
+  end
+  
+  def self.pending
+    where(status: 'pending').order(:queued_at)
+  end
+  
+  def self.processing
+    where(status: 'processing').order(:started_at)
+  end
+  
+  def self.completed
+    where(status: 'completed').order(:completed_at)
+  end
+  
+  def self.failed
+    where(status: 'failed').order(:completed_at)
   end
 end
 

@@ -46,6 +46,21 @@ class ComfyuiClient
     end
   end
 
+  def get_propt_queue
+    headers = {}
+    headers['Authorization'] = "Bearer #{@token}" if @token
+    
+    response = self.class.get("/queue", 
+      headers: headers.empty? ? nil : headers
+    )
+    
+    if response.success?
+      response.parsed_response
+    else
+      raise "Failed to get prompt status: #{response.code} - #{response.body}"
+    end
+  end
+
   # Get generated image
   def get_image(filename, subfolder = "", type = "output")
     headers = {}
@@ -115,7 +130,7 @@ class ComfyuiClient
   end
 
   # Poll for completion and return the generated image with clean prompt and params
-  def generate_and_wait(params, max_wait_seconds = 500)
+  def generate_and_wait(params, max_wait_seconds = 1000, &block)
     workflow, params = create_workflow_from_params(params)
     result = queue_prompt(workflow)
     prompt_id = result["prompt_id"]
@@ -124,12 +139,27 @@ class ComfyuiClient
       raise "Failed to get prompt ID from ComfyUI response: #{result}"
     end
     
-    start_time = Time.now
+    start_time = nil
+
+    block.call(:queued, prompt_id)
     
     loop do
-      if Time.now - start_time > max_wait_seconds
+      if start_time.present? && Time.now - start_time > max_wait_seconds
         raise "Image generation timed out after #{max_wait_seconds} seconds"
       end
+
+      queue = get_propt_queue
+
+      states = queue["queue_running"].map do |a|
+        a[1] == prompt_id
+      end
+
+      if states.any?(true) && start_time.nil?
+        start_time = Time.now
+        block.call(:running, prompt_id) if block_given?
+      end
+
+      # TODO connecto to websocket and monitor progress
       
       status = get_prompt_status(prompt_id)
       
