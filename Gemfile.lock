@@ -38,7 +38,16 @@ GEM
     securerandom (0.4.1)
     sequel (5.95.1)
       bigdecimal
+    sqlite3 (2.7.3-aarch64-linux-gnu)
+    sqlite3 (2.7.3-aarch64-linux-musl)
+    sqlite3 (2.7.3-arm-linux-gnu)
+    sqlite3 (2.7.3-arm-linux-musl)
+    sqlite3 (2.7.3-arm64-darwin)
+    sqlite3 (2.7.3-x86-linux-gnu)
+    sqlite3 (2.7.3-x86-linux-musl)
+    sqlite3 (2.7.3-x86_64-darwin)
     sqlite3 (2.7.3-x86_64-linux-gnu)
+    sqlite3 (2.7.3-x86_64-linux-musl)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     uri (1.0.3)
@@ -52,7 +61,16 @@ GEM
     websocket-native (1.0.0)
 
 PLATFORMS
-  x86_64-linux
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
+  arm64-darwin
+  x86-linux-gnu
+  x86-linux-musl
+  x86_64-darwin
+  x86_64-linux-gnu
+  x86_64-linux-musl
 
 DEPENDENCIES
   activesupport
@@ -65,4 +83,4 @@ DEPENDENCIES
   websocket-eventmachine-client
 
 BUNDLED WITH
-   2.5.3
+   2.7.1

@@ -139,14 +139,18 @@ EM.run do
           end
           debug_log("Image generation completed successfully for task ##{generation_task.id}")
           
-          generation_task.mark_completed(result[:filename])
+          filename = result[:filename]
+          generation_task.mark_completed(filename)
+          File.write(filename, result[:image_data])
+
+          Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filename}")
           
           mattermost.update(
             message, 
             reply, 
             $DEBUG_MODE ? final_params.to_json : "",
-            result[:image_data], 
-            result[:filename]
+            File.open(filename, 'rb'), 
+            filename
           )
         rescue => e
           error_msg = "❌ Image generation failed: #{e.message}"

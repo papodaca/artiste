@@ -106,12 +106,10 @@ class MattermostServerStrategy < ServerStrategy
     # Create a proper multipart form for file upload
     # HTTParty requires the file to be wrapped in a File-like object or use multipart option
     # 
-    File.write(filename, file)
-    file = File.open(filename, "rb")
 
     multipart_data = {
       channel_id: channel_id,
-      files: file.respond_to?(:read) ? file : File.open(file, 'rb')
+      files: file
     }
     
     new_files = @client.post(

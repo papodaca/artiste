@@ -1,0 +1,7 @@
+
+%Image::ExifTool::UserDefined = (
+  'Image::ExifTool::PNG::TextualData' => {
+    prompt => { },
+  },
+);
+1;
