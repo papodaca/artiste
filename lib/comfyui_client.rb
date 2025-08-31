@@ -197,35 +197,26 @@ class ComfyuiClient
 
       status = get_prompt_status(prompt_id)
 
-      if status.dig(prompt_id, "status", "status_str") == "error"
+      if status&.dig(prompt_id, "status", "status_str") == "error"
         status.dig(prompt_id, "status", "messages").each do |message|
           raise "Image generation failed: #{message.dig(1, "exception_message")}" if message[0] == "execution_error"
         end
         raise "Image generation failed"
-      end
-
-      if status && status[prompt_id] && status[prompt_id]["status"] && status[prompt_id]["status"]["completed"]
-        raise "Image generation didn't complete successfully" if status[prompt_id]["status"]["status_str"] != "success"
-        
-        # Get the output images
-        output_id = params[:output]
-        outputs = status[prompt_id]["outputs"]
-        if outputs && outputs[output_id] && outputs[output_id]["images"]
-          image_info = outputs[output_id]["images"].first
-          if image_info
-            image_data = get_image(image_info["filename"], image_info["subfolder"], image_info["type"])
-            ws&.close
-            return {
-              image_data: image_data,
-              filename: image_info["filename"],
-              prompt_id: prompt_id
-            }
-          end
+      elsif status&.dig(prompt_id, "status", "status_str") == "success"
+        if outputs = status.dig(prompt_id, "outputs", params[:output], "images")
+          image_info = outputs.first
+          image_data = get_image(image_info["filename"], image_info["subfolder"], image_info["type"])
+          ws&.close
+          return {
+            image_data: image_data,
+            filename: image_info["filename"],
+            prompt_id: prompt_id
+          }
         end
         raise "No images found in completed generation"
       end
       
-      sleep(2) # Wait 2 seconds before checking again
+      sleep(1) # Wait a second before checking again
     end
   end
 end
