@@ -85,7 +85,7 @@ class ComfyuiClient
 
   def connect_websocket(prompt_id, &block)
     ws_url = @base_url.gsub(/^http?/, 'ws')
-    ws_url = "#{ws_url}ws?token=#{CGI.escape(@token)}"
+    ws_url = "#{ws_url}/ws?token=#{CGI.escape(@token)}"
     ws =  WebSocket::EventMachine::Client.connect(uri: ws_url)
 
     ws.onmessage do |msg, type|
