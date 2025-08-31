@@ -197,6 +197,13 @@ class ComfyuiClient
 
       status = get_prompt_status(prompt_id)
 
+      if status.dig(prompt_id, "status", "status_str") == "error"
+        status.dig(prompt_id, "status", "messages").each do |message|
+          raise "Image generation failed: #{message.dig(1, "exception_message")}" if message[0] == "execution_error"
+        end
+        raise "Image generation failed"
+      end
+
       if status && status[prompt_id] && status[prompt_id]["status"] && status[prompt_id]["status"]["completed"]
         raise "Image generation didn't complete successfully" if status[prompt_id]["status"]["status_str"] != "success"
         
