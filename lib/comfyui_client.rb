@@ -1,4 +1,5 @@
 require "fileutils"
+require "cgi"
 
 class ComfyuiClient
   include HTTParty
@@ -82,6 +83,25 @@ class ComfyuiClient
     end
   end
 
+  def connect_websocket(prompt_id, &block)
+    ws_url = @base_url.gsub(/^http?/, 'ws')
+    ws_url = "#{ws_url}ws?token=#{CGI.escape(@token)}"
+    ws =  WebSocket::EventMachine::Client.connect(uri: ws_url)
+
+    ws.onmessage do |msg, type|
+      begin
+        data = JSON.parse(msg)
+        block&.call(data) if data.dig("data", "prompt_id") == prompt_id 
+      rescue JSON::ParserError => e
+      end
+    end
+    
+    ws.onclose do |code, reason|
+      ws = nil
+    end
+    ws
+  end
+
   # Load workflow template from JSON file
   def load_workflow_template(workflow_path)
     if File.exist?(workflow_path)
@@ -141,7 +161,23 @@ class ComfyuiClient
     
     start_time = nil
 
-    block.call(:queued, prompt_id)
+    block.call(:queued, prompt_id, nil) if block_given?
+    progress = []
+    ws = connect_websocket(prompt_id) do |message|
+      if message["type"] == "progress"
+        value = message.dig("data", "value")
+        max = message.dig("data", "max")
+        percent = (value.to_f / max.to_f * 100).round
+
+        if progress.empty? || (progress.last == 100 && percent < 100)
+          progress << percent
+        elsif progress.last < 100
+          progress[progress.length - 1] = percent
+        end
+
+        block&.call(:progress, prompt_id, progress) if block_given?
+      end
+    end
     
     loop do
       if start_time.present? && Time.now - start_time > max_wait_seconds
@@ -156,13 +192,11 @@ class ComfyuiClient
 
       if states.any?(true) && start_time.nil?
         start_time = Time.now
-        block.call(:running, prompt_id) if block_given?
+        block.call(:running, prompt_id, nil) if block_given?
       end
 
-      # TODO connecto to websocket and monitor progress
-      
       status = get_prompt_status(prompt_id)
-      
+
       if status && status[prompt_id] && status[prompt_id]["status"] && status[prompt_id]["status"]["completed"]
         raise "Image generation didn't complete successfully" if status[prompt_id]["status"]["status_str"] != "success"
         
@@ -173,6 +207,7 @@ class ComfyuiClient
           image_info = outputs[output_id]["images"].first
           if image_info
             image_data = get_image(image_info["filename"], image_info["subfolder"], image_info["type"])
+            ws&.close
             return {
               image_data: image_data,
               filename: image_info["filename"],

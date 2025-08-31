@@ -121,20 +121,24 @@ EM.run do
           debug_log("User settings: #{user_params.inspect}")
           debug_log("Final parameters for generation: #{final_params.inspect}")
           
-          result = comfyui.generate_and_wait(final_params, 1.hour.seconds.to_i) do |state, comfy_prompt_id|
-            if comfy_prompt_id.present? && comfy_prompt_id != generation_task.comfy_prompt_id
-              generation_task.comfy_prompt_id = comfy_prompt_id
+          result = comfyui.generate_and_wait(final_params, 1.hour.seconds.to_i) do  |kind, comfyui_prompt_id, progress|
+            if comfyui_prompt_id.present? && comfyui_prompt_id != generation_task.comfyui_prompt_id
+              debug_log("Setting the generation task's comfyui_prompt_id to #{comfyui_prompt_id}")
+              generation_task.comfyui_prompt_id = comfyui_prompt_id
               generation_task.save
             end
-            if state == :running
+            if kind == :running
               debug_log("Starting image generation process for task ##{generation_task.id}")
               generation_task.mark_processing
               mattermost.update(message, reply, "🎨 Generating image... This may take a few minutes.#{$DEBUG_MODE ? final_params.to_json : ''}")
             end
+            if kind == :progress
+              debug_log("Generation progress for task ##{generation_task.id}, #{progress.join(", ")}")
+              mattermost.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map{|p| p.to_s + "%"}.join(", ")}.#{$DEBUG_MODE ? final_params.to_json : ''}")
+            end
           end
           debug_log("Image generation completed successfully for task ##{generation_task.id}")
           
-          # Mark task as completed
           generation_task.mark_completed(result[:filename])
           
           mattermost.update(
