@@ -28,6 +28,7 @@ DB.create_table? :generation_tasks do
   String :status, default: 'pending' # pending, processing, completed, failed
   Text :prompt, null: false
   Text :parameters # JSON string of generation parameters
+  Text :exif_data, default: '{}' # JSON string of EXIF data
   String :workflow_type # flux, qwen, etc.
   String :comfyui_prompt_id # ComfyUI's prompt ID for tracking
   String :output_filename
@@ -42,6 +43,7 @@ DB.create_table? :generation_tasks do
   index [:user_id, :status]
   index :queued_at
 end
+# sqlite3 db/artiste.db "ALTER TABLE generation_tasks ADD COLUMN exif_data TEXT DEFAULT '{}';"
 
 # User Settings model
 class UserSettings < Sequel::Model(:user_settings)
@@ -100,6 +102,15 @@ class GenerationTask < Sequel::Model(:generation_tasks)
     self.parameters = params_hash.to_json
   end
   
+  def parsed_exif_data
+    JSON.parse(self.exif_data || '{}', symbolize_names: true) rescue {}
+  end
+  
+  def set_exif_data(exif_hash)
+    self.exif_data = exif_hash.to_json
+    self.save
+  end
+  
   def mark_processing(comfyui_prompt_id = nil)
     self.status = 'processing'
     self.started_at = Time.now
@@ -148,5 +159,3 @@ class GenerationTask < Sequel::Model(:generation_tasks)
     where(status: 'failed').order(:completed_at)
   end
 end
-
-puts "Database initialized at: #{DB_PATH}"

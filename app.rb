@@ -144,7 +144,27 @@ EM.run do
           File.write(filename, result[:image_data])
 
           Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filename}")
-          
+
+          exif_data = {}
+          debug_log("Reading EXIF data from image file: #{filename}")
+          exif_output = `exiftool -j "#{filename}" 2>/dev/null`
+          begin
+            exif_json = JSON.parse(exif_output)
+            if exif_json.is_a?(Array) && exif_json.first
+              exif_data = exif_json.first
+              %w[SourceFile ExifToolVersion FileName Directory FilePermissions FileModifyDate FileAccessDate FileInodeChangeDate].each do |k|
+                exif_data.delete(k)
+              end
+              debug_log("Successfully read EXIF data from image")
+            end
+          rescue JSON::ParserError => e
+            debug_log("Failed to parse EXIF JSON: #{e.message}")
+          end
+
+          unless exif_data.empty?
+            generation_task.set_exif_data(exif_data)
+          end
+
           mattermost.update(
             message, 
             reply, 
@@ -271,14 +291,26 @@ EM.run do
       mattermost.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
       return
     end
-    
+
     debug_log("Found generation task ##{task.id} for image: #{image_name}")
-    
+
+    # Try to read EXIF data from the actual image file
+    exif_data = task.parsed_exif_data
+
     # Build detailed response
     details_text = []
     details_text << "🖼️ **Generation Details for:** `#{image_name}`"
     details_text << ""
-    details_text << "**Basic Info:**"
+
+    unless exif_data.empty?
+      details_text << "**Image Metadata (EXIF):**"
+      exif_data.each do |key, value|
+        details_text << "• #{key.to_s.titleize}: #{value}"
+      end
+      details_text << ""
+    end
+    
+    details_text << "**Database Info:**"
     details_text << "• Task ID: ##{task.id}"
     details_text << "• User: #{task.username} (#{task.user_id})"
     details_text << "• Status: #{task.status.upcase}"
