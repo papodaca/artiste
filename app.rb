@@ -5,6 +5,7 @@ require_relative "config/database"
 require_relative "lib/mattermost_server_strategy"
 require_relative "lib/comfyui_client"
 require_relative "lib/prompt_parameter_parser"
+require_relative "lib/commands/command_dispatcher"
 
 # Parse command line arguments
 options = {}
@@ -26,23 +27,6 @@ $DEBUG_MODE = options[:debug] || false
 
 def debug_log(message)
   puts "[DEBUG] #{Time.now.strftime('%Y-%m-%d %H:%M:%S')} - #{message}" if $DEBUG_MODE
-end
-
-SYNONYMS = {
-  "aspect_ratio" => ["ar", "aspectratio", "aspect_ratio"],
-  "width" => ["w", "width"],
-  "height" => ["h", "height"],
-  "steps" => ["s", "steps"],
-  "model" => ["m", "model"],
-  "shift" => ["sh", "shift"],
-  "basesize" => ["bs", "basesize"],
-}.freeze
-
-def synonym(name)
-  SYNONYMS.each do |k, v|
-    return k if v.include?(name.to_s)
-  end
-  nil
 end
 
 
@@ -94,7 +78,7 @@ EM.run do
     # Handle commands
     if parsed_params.has_key?(:type)
       debug_log("Handling command of type: #{parsed_params[:type]}")
-      handle_command(mattermost, message, parsed_params, user_settings)
+      CommandDispatcher.execute(mattermost, message, parsed_params, user_settings)
     else
       debug_log("Handling image generation request")
       # Handle regular image generation
@@ -189,197 +173,4 @@ EM.run do
     end
   end
 
-  # Command handling methods
-  def handle_command(mattermost, message, parsed_result, user_settings)
-    debug_log("Executing command handler for type: #{parsed_result[:type]}")
-    case parsed_result[:type]
-    when :set_settings
-      handle_set_settings_command(mattermost, message, parsed_result, user_settings)
-    when :get_settings
-      handle_get_settings_command(mattermost, message, user_settings)
-    when :get_details
-      handle_get_details_command(mattermost, message, parsed_result)
-    when :help
-      handle_help_command(mattermost, message, parsed_result)
-    when :unknown_command
-      handle_unknown_command(mattermost, message, parsed_result)
-    else
-      debug_log("Unknown command type encountered: #{parsed_result[:type]}")
-      mattermost.respond(message, "❌ Unknown command type: #{parsed_result[:type]}")
-    end
-  end
-
-  def handle_set_settings_command(mattermost, message, parsed_result, user_settings)
-    debug_log("Handling set settings command")
-    settings = parsed_result[:settings]
-    delete_keys = parsed_result[:delete_keys] || []
-    debug_log("Settings to update: #{settings.inspect}")
-    debug_log("Keys to delete: #{delete_keys.inspect}")
-    
-    if settings.empty? && delete_keys.empty?
-      debug_log("No settings or delete operations provided in command")
-      mattermost.respond(message, "❌ No settings or delete operations provided. Use `/help` to see available options.")
-      return
-    end
-
-    # Handle deletions first
-    deleted_keys = []
-
-    delete_keys.each do |key|
-      debug_log("Deleting setting: #{key}")
-      sym = synonym(key).to_sym
-      if sym && user_settings.delete_param(sym)
-        deleted_keys << sym.to_s.titleize
-      end
-    end
-
-    # Update user settings
-    # 
-    if settings.has_key?(:aspect_ratio)
-      debug_log("Aspect ratio detected, removing width/height settings")
-      settings.delete(:width)
-      settings.delete(:height)
-    end
-    settings.each do |key, value|
-      debug_log("Setting #{key} = #{value}")
-      user_settings.set_param(key.to_sym, value)
-    end
-    
-    user_settings.save
-    debug_log("User settings saved successfully")
-    
-    # Build response message
-    response_parts = []
-    
-    if deleted_keys.any?
-      response_parts << "🗑️ **Deleted settings:** #{deleted_keys.join(', ')}"
-    end
-    
-    if settings.any?
-      settings_text = []
-      print_settings(settings_text, user_settings.parsed_prompt_params)
-      response_parts << "✅ **Updated settings:**\n#{settings_text.join("\n")}"
-    end
-    
-    if response_parts.empty?
-      response_parts << "ℹ️ No changes made to settings."
-    end
-    
-    response = response_parts.join("\n\n")
-    mattermost.respond(message, response)
-  end
-
-  def handle_get_settings_command(mattermost, message, user_settings)
-    debug_log("Handling get settings command")
-    settings_text = []
-    print_settings(settings_text, user_settings.parsed_prompt_params)
-    debug_log("Retrieved user settings: #{user_settings.parsed_prompt_params.inspect}")
-    
-    mattermost.respond(message, "⚙️ **Current Settings:**\n#{settings_text.join("\n")}")
-  end
-
-  def handle_get_details_command(mattermost, message, parsed_result)
-    debug_log("Handling get details command")
-    image_name = parsed_result[:image_name]
-    debug_log("Looking up details for image: #{image_name}")
-    
-    # Look up generation task by output filename
-    task = GenerationTask.where(output_filename: image_name).first || GenerationTask.where(comfyui_prompt_id: image_name).first
-    
-    if task.nil?
-      debug_log("No generation task found for image: #{image_name}")
-      mattermost.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
-      return
-    end
-
-    debug_log("Found generation task ##{task.id} for image: #{image_name}")
-
-    # Try to read EXIF data from the actual image file
-    exif_data = task.parsed_exif_data
-
-    # Build detailed response
-    details_text = []
-    details_text << "🖼️ **Generation Details for:** `#{image_name}`"
-    details_text << ""
-
-    unless exif_data.empty?
-      details_text << "**Image Metadata (EXIF):**"
-      exif_data.each do |key, value|
-        details_text << "• #{key.to_s.titleize}: #{value}"
-      end
-      details_text << ""
-    end
-    
-    details_text << "**Database Info:**"
-    details_text << "• Task ID: ##{task.id}"
-    details_text << "• User: #{task.username} (#{task.user_id})"
-    details_text << "• Status: #{task.status.upcase}"
-    details_text << "• Workflow: #{task.workflow_type || 'N/A'}"
-    details_text << ""
-    
-    # Timing information
-    details_text << "**Timing:**"
-    details_text << "• Queued: #{task.queued_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.queued_at}"
-    details_text << "• Started: #{task.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.started_at}"
-    details_text << "• Completed: #{task.completed_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.completed_at}"
-    if task.processing_time_seconds
-      details_text << "• Processing Time: #{'%.2f' % task.processing_time_seconds}s"
-    end
-    details_text << ""
-
-    # Original prompt
-    details_text << "**Original Prompt:**"
-    details_text << "```"
-    details_text << task.prompt
-    details_text << "```"
-    details_text << ""
-
-    # Generation parameters
-    if task.parameters && !task.parameters.empty?
-      params = task.parsed_parameters
-      details_text << "**Generation Parameters:**"
-      details_text << "```json"
-      details_text << JSON.pretty_generate(params)
-      details_text << "```"
-      details_text << ""
-    end
-
-    # ComfyUI details
-    if task.comfyui_prompt_id
-      details_text << "**ComfyUI Info:**"
-      details_text << "• Prompt ID: #{task.comfyui_prompt_id}"
-      details_text << ""
-    end
-
-    # Error information if failed
-    if task.status == 'failed' && task.error_message
-      details_text << "**Error Details:**"
-      details_text << "```"
-      details_text << task.error_message
-      details_text << "```"
-    end
-
-    mattermost.respond(message, details_text.join("\n"))
-  end
-
-  def print_settings(out, settings)
-    out << "```"
-    settings.each do |key, value|
-      out << "#{key.to_s.titleize}: #{value}"
-    end
-    out << "```"
-  end
-
-  def handle_help_command(mattermost, message, parsed_result)
-    debug_log("Handling help command")
-    help_text = parsed_result[:help_text]
-    mattermost.respond(message, help_text)
-  end
-
-  def handle_unknown_command(mattermost, message, parsed_result)
-    debug_log("Handling unknown command")
-    error_msg = parsed_result[:error] || "Unknown command"
-    debug_log("Unknown command error: #{error_msg}")
-    mattermost.respond(message, "❌ #{error_msg}")
-  end
 end
