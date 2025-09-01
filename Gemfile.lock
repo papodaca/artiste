@@ -21,6 +21,7 @@ GEM
     concurrent-ruby (1.3.5)
     connection_pool (2.5.3)
     csv (3.3.5)
+    daemons (1.4.1)
     drb (2.2.3)
     eventmachine (1.2.7)
     httparty (0.23.1)
@@ -37,15 +38,36 @@ GEM
     minitest (5.25.5)
     multi_xml (0.7.2)
       bigdecimal (~> 3.1)
+    mustermann (3.0.4)
+      ruby2_keywords (~> 0.0.1)
+    nio4r (2.7.4)
     ostruct (0.6.3)
     pry (0.15.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
+    puma (6.6.1)
+      nio4r (~> 2.0)
+    rack (3.2.0)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.1.1)
+      base64 (>= 0.1.0)
+      rack (>= 3.0.0)
     reline (0.6.2)
       io-console (~> 0.5)
+    ruby2_keywords (0.0.5)
     securerandom (0.4.1)
     sequel (5.95.1)
       bigdecimal
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
+      mustermann (~> 3.0)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.1.1)
+      rack-session (>= 2.0.0, < 3)
+      tilt (~> 2.0)
     sqlite3 (2.7.3-aarch64-linux-gnu)
     sqlite3 (2.7.3-aarch64-linux-musl)
     sqlite3 (2.7.3-arm-linux-gnu)
@@ -56,6 +78,12 @@ GEM
     sqlite3 (2.7.3-x86_64-darwin)
     sqlite3 (2.7.3-x86_64-linux-gnu)
     sqlite3 (2.7.3-x86_64-linux-musl)
+    thin (2.0.1)
+      daemons (~> 1.0, >= 1.0.9)
+      eventmachine (~> 1.0, >= 1.0.4)
+      logger
+      rack (>= 1, < 4)
+    tilt (2.6.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     uri (1.0.3)
@@ -85,10 +113,13 @@ DEPENDENCIES
   httparty
   json
   ostruct
-  pry (~> 0.15.2)
-  reline (~> 0.6.2)
+  pry
+  puma (~> 6.6)
+  reline
   sequel
+  sinatra
   sqlite3
+  thin (~> 2.0)
   uri
   websocket-eventmachine-client
 

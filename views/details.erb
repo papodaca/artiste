@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Details - <%= ERB::Util.html_escape(File.basename(@photo_path)) %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+            theme: {
+                extend: {
+                    colors: {
+                        'status-completed-bg': '#d4edda',
+                        'status-completed-text': '#155724',
+                        'status-processing-bg': '#fff3cd',
+                        'status-processing-text': '#856404',
+                        'status-failed-bg': '#f8d7da',
+                        'status-failed-text': '#721c24',
+                        'status-pending-bg': '#d1ecf1',
+                        'status-pending-text': '#0c5460'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans m-0 p-5 bg-gray-100 dark:bg-gray-900 leading-relaxed">
+    <div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div class="bg-gray-800 dark:bg-gray-700 text-white p-5 text-center">
+            <a href="/" class="text-gray-300 dark:text-gray-400 no-underline text-sm mb-2 inline-block hover:text-white dark:hover:text-gray-200">← Back to Gallery</a>
+            <h1 class="m-0 text-2xl">Photo Details</h1>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+            <div class="text-center">
+                <img src="/photo/<%= ERB::Util.url_encode(@photo_path) %>" alt="<%= ERB::Util.html_escape(File.basename(@photo_path)) %>" class="max-w-full h-auto rounded-lg shadow-lg">
+            </div>
+            
+            <div class="lg:pl-5">
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Basic Information</h3>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Filename:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= ERB::Util.html_escape(@task.output_filename) %></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Status:</span>
+                        <span class="px-2 py-1 rounded text-sm font-bold uppercase <%= @task.status == 'completed' ? 'bg-status-completed-bg text-status-completed-text' : @task.status == 'processing' ? 'bg-status-processing-bg text-status-processing-text' : @task.status == 'failed' ? 'bg-status-failed-bg text-status-failed-text' : 'bg-status-pending-bg text-status-pending-text' %>"><%= @task.status %></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">User:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= ERB::Util.html_escape(@task.username || @task.user_id) %></span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Workflow Type:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= ERB::Util.html_escape(@task.workflow_type || 'Unknown') %></span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Timing</h3>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Queued At:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= @task.queued_at.strftime('%Y-%m-%d %H:%M:%S') if @task.queued_at %></span>
+                    </div>
+                    <% if @task.started_at %>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Started At:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= @task.started_at.strftime('%Y-%m-%d %H:%M:%S') %></span>
+                    </div>
+                    <% end %>
+                    <% if @task.completed_at %>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Completed At:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= @task.completed_at.strftime('%Y-%m-%d %H:%M:%S') %></span>
+                    </div>
+                    <% end %>
+                    <% if @task.processing_time_seconds %>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">Processing Time:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= '%.2f' % @task.processing_time_seconds %> seconds</span>
+                    </div>
+                    <% end %>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Prompt</h3>
+                    <div class="bg-gray-50 dark:bg-gray-700 dark:text-gray-200 p-4 rounded font-mono text-sm whitespace-pre-wrap break-words"><%= ERB::Util.html_escape(@task.prompt) %></div>
+                </div>
+                
+                <% if @task.parameters && !@task.parameters.empty? && @task.parameters != '{}' %>
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Generation Parameters</h3>
+                    <div class="bg-gray-50 dark:bg-gray-700 dark:text-gray-200 p-4 rounded font-mono text-sm overflow-x-auto"><%= ERB::Util.html_escape(JSON.pretty_generate(@task.parsed_parameters)) %></div>
+                </div>
+                <% end %>
+                
+                <% if @task.exif_data && !@task.exif_data.empty? && @task.exif_data != '{}' %>
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">EXIF Data</h3>
+                    <div class="bg-gray-50 dark:bg-gray-700 dark:text-gray-200 p-4 rounded font-mono text-sm overflow-x-auto"><%= ERB::Util.html_escape(JSON.pretty_generate(@task.parsed_exif_data)) %></div>
+                </div>
+                <% end %>
+                
+                <% if @task.error_message %>
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Error</h3>
+                    <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded border border-red-200 dark:border-red-700"><%= ERB::Util.html_escape(@task.error_message) %></div>
+                </div>
+                <% end %>
+                
+                <% if @task.comfyui_prompt_id %>
+                <div class="mb-6">
+                    <h3 class="mt-0 mb-3 text-gray-800 dark:text-gray-200 text-xl border-b-2 border-gray-200 dark:border-gray-600 pb-1">Technical Details</h3>
+                    <div class="mb-3">
+                        <span class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]">ComfyUI Prompt ID:</span>
+                        <span class="text-gray-800 dark:text-gray-200 break-words"><%= ERB::Util.html_escape(@task.comfyui_prompt_id) %></span>
+                    </div>
+                </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

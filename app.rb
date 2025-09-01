@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+require 'thin'
+require 'rack'
 require 'optparse'
 require 'fileutils'
 require_relative "config/environment"
@@ -7,6 +9,7 @@ require_relative "lib/mattermost_server_strategy"
 require_relative "lib/comfyui_client"
 require_relative "lib/prompt_parameter_parser"
 require_relative "lib/commands/command_dispatcher"
+require_relative "web_server"
 
 # Parse command line arguments
 options = {}
@@ -39,6 +42,17 @@ EM.run do
   debug_log("Environment variables - COMFYUI_URL: #{ENV['COMFYUI_URL'] || 'http://localhost:8188'}")
   debug_log("Environment variables - COMFYUI_TOKEN: #{ENV['COMFYUI_TOKEN'] ? 'SET' : 'NOT SET'}")
   
+  web_app = PhotoGalleryApp.new
+  
+  dispatch = Rack::Builder.app do
+    map '/' do
+      run web_app
+    end
+  end
+
+  server = Thin::Server.new("0.0.0.0", 4567, dispatch)
+  server.start
+  
   mattermost = MattermostServerStrategy.new(
     mattermost_url: ENV["MATTERMOST_URL"],
     mattermost_token: ENV["MATTERMOST_TOKEN"],
@@ -50,6 +64,16 @@ EM.run do
     ENV["COMFYUI_TOKEN"],
     "workflows"
   )
+
+  Signal.trap("INT") do
+    server.stop
+    EM.stop
+  end
+
+  Signal.trap("TERM") do
+    server.stop
+    EM.stop
+  end
   
   debug_log("Initialized Mattermost and ComfyUI clients")
   
@@ -130,7 +154,7 @@ EM.run do
           filepath = File.join(target_dir, filename)
           File.write(filepath, result[:image_data])
 
-          Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filepath}")
+          Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filepath} > /dev/null 2>&1")
 
           exif_data = {}
           debug_log("Reading EXIF data from image file: #{filepath}")
