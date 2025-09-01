@@ -126,6 +126,8 @@ The easiet way to deploy is by adding to mattermost's `docker-compose.yml`
     artiste:
       image: ghcr.io/papodaca/artiste:main
       restart: always
+      ports:
+        - 4567:4567
       volumes:
         - ./artiste_db:/app/db
       environment:

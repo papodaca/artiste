@@ -9,6 +9,7 @@ class PromptParameterParser
       steps: 20,
       width: 1328,
       height: 1328,
+      basesize: 1328,
       shift: 3.1,
     },
   }
@@ -21,7 +22,7 @@ class PromptParameterParser
     new.resolve_params(params)
   end
 
-  def parse(full_prompt, model = nil)
+  def parse(full_prompt, model)
     # Check if this is a command (starts with /)
     if full_prompt.strip.start_with?('/')
       return parse_command(full_prompt.strip)
@@ -35,7 +36,7 @@ class PromptParameterParser
       negative_prompt: "",
     }
  
-    params[:model] = result[:model] if result.has_key?(:model)
+    params[:model] = result.dig(:parsed_params, :model) if result[:parsed_params].has_key?(:model)
     default_params = DEFAULT_CONFIGS[params[:model].to_sym]
     params.merge!(default_params) if default_params.present?
     
