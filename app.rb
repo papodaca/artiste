@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'optparse'
+require 'fileutils'
 require_relative "config/environment"
 require_relative "config/database"
 require_relative "lib/mattermost_server_strategy"
@@ -125,13 +126,15 @@ EM.run do
           
           filename = result[:filename]
           generation_task.mark_completed(filename)
-          File.write(filename, result[:image_data])
+          target_dir = generation_task.file_path
+          filepath = File.join(target_dir, filename)
+          File.write(filepath, result[:image_data])
 
-          Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filename}")
+          Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filepath}")
 
           exif_data = {}
-          debug_log("Reading EXIF data from image file: #{filename}")
-          exif_output = `exiftool -j "#{filename}" 2>/dev/null`
+          debug_log("Reading EXIF data from image file: #{filepath}")
+          exif_output = `exiftool -j "#{filepath}" 2>/dev/null`
           begin
             exif_json = JSON.parse(exif_output)
             if exif_json.is_a?(Array) && exif_json.first
@@ -153,8 +156,8 @@ EM.run do
             message, 
             reply, 
             $DEBUG_MODE ? final_params.to_json : "",
-            File.open(filename, 'rb'), 
-            filename
+            File.open(filepath, 'rb'), 
+            filepath
           )
         rescue => e
           error_msg = "❌ Image generation failed: #{e.message}"

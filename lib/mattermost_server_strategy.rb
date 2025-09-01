@@ -121,7 +121,6 @@ class MattermostServerStrategy < ServerStrategy
       multipart: true,
       body: multipart_data
     )
-    FileUtils.rm(filename)
     new_files["file_infos"].map { |f| f["id"] }
   end
 end

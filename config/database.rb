@@ -105,6 +105,18 @@ class GenerationTask < Sequel::Model(:generation_tasks)
   def parsed_exif_data
     JSON.parse(self.exif_data || '{}', symbolize_names: true) rescue {}
   end
+
+  def file_path
+    target_dir = File.join(
+      'db',
+      'photos',
+      self.completed_at.strftime('%Y'),
+      self.completed_at.strftime('%m'),
+      self.completed_at.strftime('%d')
+    )
+    FileUtils.mkdir_p(target_dir)
+    target_dir
+  end
   
   def set_exif_data(exif_hash)
     self.exif_data = exif_hash.to_json
