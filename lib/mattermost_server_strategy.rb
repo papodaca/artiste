@@ -1,6 +1,3 @@
-require_relative "mattermost_client"
-require_relative "server_strategy"
-
 class MattermostServerStrategy < ServerStrategy
   def initialize(*args, **kwargs)
     @mattermost_url = kwargs[:mattermost_url]
@@ -29,7 +26,7 @@ class MattermostServerStrategy < ServerStrategy
       }
     )
 
-    # ws.onopen do 
+    # ws.onopen do
     #   ws.send({
     #     seq: 1,
     #     action: "authentication_challenge",
@@ -41,8 +38,8 @@ class MattermostServerStrategy < ServerStrategy
 
     ws.onmessage do |msg, type|
       msg_data = JSON.parse(msg)
-      msg_data["data"]["mentions"] = JSON.parse(msg_data.dig("data", "mentions")) if msg_data.dig("data", "mentions") != nil
-      msg_data["data"]["post"] = JSON.parse(msg_data.dig("data", "post")) if msg_data.dig("data", "post") != nil
+      msg_data["data"]["mentions"] = JSON.parse(msg_data.dig("data", "mentions")) unless msg_data.dig("data", "mentions").nil?
+      msg_data["data"]["post"] = JSON.parse(msg_data.dig("data", "post")) unless msg_data.dig("data", "post").nil?
       @messages_sequence = msg["seq"]
 
       if msg_data["event"] == "posted"
@@ -105,13 +102,13 @@ class MattermostServerStrategy < ServerStrategy
   def upload_file(channel_id, file, filename)
     # Create a proper multipart form for file upload
     # HTTParty requires the file to be wrapped in a File-like object or use multipart option
-    # 
+    #
 
     multipart_data = {
       channel_id: channel_id,
       files: file
     }
-    
+
     new_files = @client.post(
       "/files",
       query: {

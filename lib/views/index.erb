@@ -10,8 +10,21 @@
             darkMode: 'media'
         }
     </script>
+    <style>
+        .grid-background {
+            background-image: 
+                linear-gradient(rgba(156, 163, 175, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(156, 163, 175, 0.2) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .dark .grid-background {
+            background-image: 
+                linear-gradient(rgba(75, 85, 99, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(75, 85, 99, 0.2) 1px, transparent 1px);
+        }
+    </style>
 </head>
-<body class="font-sans m-0 p-5 bg-gray-100 dark:bg-gray-900">
+<body class="font-sans m-0 p-5 bg-gray-100 dark:bg-gray-900 grid-background">
     <h1 class="text-center text-gray-800 dark:text-gray-200 mb-8 text-3xl font-bold">Photo Gallery</h1>
     
     <% if @photos.empty? %>

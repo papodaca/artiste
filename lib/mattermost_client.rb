@@ -2,8 +2,8 @@ class MattermostClient
   include HTTParty
 
   def self.setup(uri, token)
-    self.base_uri(uri)
-    self.headers({
+    base_uri(uri)
+    headers({
       "Authorization" => "Bearer #{token}",
       "Accept" => "application/json"
     })

@@ -24,8 +24,21 @@
             }
         }
     </script>
+    <style>
+        .grid-background {
+            background-image: 
+                linear-gradient(rgba(156, 163, 175, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(156, 163, 175, 0.2) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .dark .grid-background {
+            background-image: 
+                linear-gradient(rgba(75, 85, 99, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(75, 85, 99, 0.2) 1px, transparent 1px);
+        }
+    </style>
 </head>
-<body class="font-sans m-0 p-5 bg-gray-100 dark:bg-gray-900 leading-relaxed">
+<body class="font-sans m-0 p-5 bg-gray-100 dark:bg-gray-900 leading-relaxed grid-background">
     <div class="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         <div class="bg-gray-800 dark:bg-gray-700 text-white p-5 text-center">
             <a href="/" class="text-gray-300 dark:text-gray-400 no-underline text-sm mb-2 inline-block hover:text-white dark:hover:text-gray-200">← Back to Gallery</a>
