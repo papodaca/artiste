@@ -3,6 +3,11 @@ class ServerStrategy
     server_type = ENV["ARTISTE_SERVER"]&.downcase || "mattermost"
 
     case server_type
+    when "discord"
+      DiscordServerStrategy.new(
+        discord_token: ENV["DISCORD_TOKEN"],
+        discord_channels: (ENV["DISCORD_CHANNELS"] || "").split(",")
+      )
     when "mattermost"
       MattermostServerStrategy.new(
         mattermost_url: ENV["MATTERMOST_URL"],
