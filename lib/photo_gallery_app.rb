@@ -18,6 +18,13 @@ class PhotoGalleryApp < Sinatra::Base
 
   configure do
     set :threaded, false
+
+    # Allow hosts from ALLOWED_HOSTS env var
+    allowed_hosts = ENV["ALLOWED_HOSTS"]&.split(",")&.map(&:strip) || ["localhost", "127.0.0.1"]
+
+    set :host_authorization, {
+      permitted_hosts: allowed_hosts
+    }
   end
 
   # Helper method to get all photos recursively from db/photos

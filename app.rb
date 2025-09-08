@@ -12,6 +12,10 @@ OptionParser.new do |opts|
     options[:debug] = v
   end
 
+  opts.on("-w", "--web", "Enable the web server") do |v|
+    options[:web] = v
+  end
+
   opts.on("-h", "--help", "Show this help message") do
     puts opts
     exit
@@ -36,17 +40,19 @@ EM.run do
   debug_log("Environment variables - COMFYUI_URL: #{ENV["COMFYUI_URL"] || "http://localhost:8188"}")
   debug_log("Environment variables - COMFYUI_TOKEN: #{ENV["COMFYUI_TOKEN"] ? "SET" : "NOT SET"}")
 
-  photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
-  web_app = PhotoGalleryApp.new(photos_dir)
+  if options[:web].present?
+    photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
+    web_app = PhotoGalleryApp.new(photos_dir)
 
-  dispatch = Rack::Builder.app do
-    map "/" do
-      run web_app
+    dispatch = Rack::Builder.app do
+      map "/" do
+        run web_app
+      end
     end
-  end
 
-  server = Thin::Server.new("0.0.0.0", 4567, dispatch)
-  server.start
+    server = Thin::Server.new("0.0.0.0", 4567, dispatch)
+    server.start
+  end
 
   server_strategy = ServerStrategy.create_strategy
 
