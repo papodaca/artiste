@@ -5,7 +5,7 @@ RSpec.describe ServerStrategy do
 
   describe "#initialize" do
     it "raises NOT IMPLIMENTED error" do
-      expect { described_class.new(options) }.to raise_error(RuntimeError, "NOT IMPLIMENTED")
+      expect { described_class.new(options) }.to raise_error(NotImplementedError)
     end
   end
 
@@ -13,11 +13,11 @@ RSpec.describe ServerStrategy do
     let(:strategy) { described_class.allocate }
 
     it "raises NOT IMPLIMENTED error" do
-      expect { strategy.connect }.to raise_error(RuntimeError, "NOT IMPLIMENTED")
+      expect { strategy.connect }.to raise_error(NotImplementedError)
     end
 
     it "accepts a block parameter" do
-      expect { |b| strategy.connect(&b) }.to raise_error(RuntimeError, "NOT IMPLIMENTED")
+      expect { |b| strategy.connect(&b) }.to raise_error(NotImplementedError)
     end
   end
 
@@ -27,7 +27,7 @@ RSpec.describe ServerStrategy do
     let(:reply) { "test reply" }
 
     it "raises NOT IMPLIMENTED error" do
-      expect { strategy.respond(message, reply) }.to raise_error(RuntimeError, "NOT IMPLIMENTED")
+      expect { strategy.respond(message, reply) }.to raise_error(NotImplementedError)
     end
   end
 
@@ -38,7 +38,7 @@ RSpec.describe ServerStrategy do
     let(:update) { "test update" }
 
     it "raises NOT IMPLIMENTED error" do
-      expect { strategy.update(message, reply, update) }.to raise_error(RuntimeError, "NOT IMPLIMENTED")
+      expect { strategy.update(message, reply, update) }.to raise_error(NotImplementedError)
     end
   end
 end

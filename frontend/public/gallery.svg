@@ -1,0 +1,28 @@
+<!-- AI Photo Gallery — with larger sparkle -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true" role="img">
+  <!-- back card -->
+  <rect x="6" y="12" width="40" height="32" rx="3.5" fill="#E6F0FF"/>
+  <!-- middle card -->
+  <rect x="10" y="8" width="40" height="32" rx="3.5" fill="#DDEBFF"/>
+  <!-- front card -->
+  <rect x="14" y="4" width="40" height="32" rx="3.5" fill="#FFFFFF" stroke="#C8D7F8" stroke-width="1.5"/>
+
+  <!-- simple mountain & sun on front card -->
+  <g transform="translate(14,4)">
+    <polygon points="6,22 14,10 22,22" fill="#B9D0FF"/>
+    <rect x="0" y="20" width="32" height="6" rx="1" fill="#F2F6FF"/>
+    <circle cx="24" cy="6" r="3.5" fill="#FFD57A"/>
+  </g>
+
+  <!-- AI node badge (circle + connections) -->
+  <g transform="translate(40,30)">
+    <circle cx="8" cy="8" r="8" fill="#6C63FF"/>
+    <!-- inner node -->
+    <circle cx="8" cy="8" r="3" fill="#FFFFFF"/>
+  </g>
+
+  <!-- bigger sparkle to hint "generated / magic" -->
+  <g transform="translate(8,6)" fill="#FFD57A" opacity="0.95" scale="2">
+    <polygon points="0,0 1.5,3 4,4 1.5,5 0,8 -1.5,5 -4,4 -1.5,3"/>
+  </g>
+</svg>

@@ -1,8 +1,8 @@
 class BaseCommand
-  attr_reader :mattermost, :message, :parsed_result, :user_settings, :debug_log_enabled
+  attr_reader :server, :message, :parsed_result, :user_settings, :debug_log_enabled
 
-  def initialize(mattermost, message, parsed_result = nil, user_settings = nil, debug_log_enabled = false)
-    @mattermost = mattermost
+  def initialize(server, message, parsed_result = nil, user_settings = nil, debug_log_enabled = false)
+    @server = server
     @message = message
     @parsed_result = parsed_result
     @user_settings = user_settings

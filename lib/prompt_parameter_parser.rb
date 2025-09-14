@@ -25,7 +25,7 @@ class PromptParameterParser
   def parse(full_prompt, model)
     # Check if this is a command (starts with /)
     if full_prompt.strip.start_with?("/")
-      return parse_command(full_prompt.strip)
+      return CommandDispatcher.parse_command(full_prompt.strip)
     end
 
     result = extract_parameters(full_prompt)
@@ -52,38 +52,7 @@ class PromptParameterParser
     end
   end
 
-  # Parse slash commands
-  def parse_command(command_string)
-    case command_string
-    when %r{^/set_settings\s+(.+)}
-      parse_set_settings_command($1)
-    when "/get_settings"
-      parse_get_settings_command
-    when %r{^/details\s+(.+)}
-      parse_details_command($1)
-    when "/help"
-      parse_help_command
-    else
-      {
-        type: :unknown_command,
-        command: command_string,
-        error: "Unknown command: #{command_string}"
-      }
-    end
-  end
-
   private
-
-  def parse_set_settings_command(params_string)
-    result = extract_parameters(params_string)
-    delete_keys = params_string.scan(/--delete\s+(\w+)/).map { |s| s[0].to_sym }
-
-    {
-      type: :set_settings,
-      settings: result[:parsed_params],
-      delete_keys: delete_keys
-    }
-  end
 
   # Shared method for extracting parameters from text
   def extract_parameters(text)
@@ -156,57 +125,6 @@ class PromptParameterParser
     width, height = aspect_ratio_to_dimensions(params[:aspect_ratio], basesize)
     params[:width] = width
     params[:height] = height
-  end
-
-  def parse_details_command(image_name)
-    {
-      type: :get_details,
-      image_name: image_name.strip
-    }
-  end
-
-  def parse_get_settings_command
-    {
-      type: :get_settings
-    }
-  end
-
-  def parse_help_command
-    {
-      type: :help,
-      help_text: generate_help_text
-    }
-  end
-
-  def generate_help_text
-    <<~HELP
-      Available commands:
-      
-      /set_settings [options] - Set default settings for image generation
-        Options:
-          --ar <ratio>        Set aspect ratio (e.g., 3:2, 16:9, 1:1)
-          --width <pixels>    Set image width
-          --height <pixels>   Set image height  
-          --steps <number>    Set number of generation steps
-          --model <name>      Set default model (flux, qwen)
-          --shift <number>    Set shift parameter (for qwen model)
-          --basesize <pixels> Set base size for aspect ratio calculations
-          --delete <key>      Delete a setting (e.g., --delete aspect_ratio)
-        
-        Examples: 
-          /set_settings --ar 3:2 --steps 30
-          /set_settings --delete aspect_ratio
-      
-      /get_settings - Display current default settings
-      
-      /details <image_name|comfyui_prompt_id> - Show generation details for a specific image
-        Example: /details output_20241230_123456.png
-      
-      /help - Show this help message
-      
-      For image generation, use normal prompts with optional parameters:
-        Example: "a beautiful sunset --ar 16:9 --steps 20"
-    HELP
   end
 
   # Convert aspect ratio to width and height

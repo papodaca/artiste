@@ -1,8 +1,7 @@
 require "fileutils"
 require "cgi"
-require_relative "comfyui_http_client"
 
-class ComfyuiClient
+class ComfyuiClient < ImageGenerationClient
   attr_reader :http_client
 
   def initialize(comfyui_url, token = nil, workflow_path = "workflows")

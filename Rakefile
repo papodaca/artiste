@@ -10,5 +10,5 @@ task :spec do
 end
 
 task :standard do
-  sh "bundle exec standardrb ./lib/**/*.rb ./spec/**/*.rb app.rb"
+  sh "bundle exec standardrb ./lib/**/*.rb ./spec/**/*.rb app.rb Gemfile Rakefile"
 end

@@ -1,6 +1,16 @@
-require_relative "base_command"
-
 class SetSettingsCommand < BaseCommand
+  def self.parse(params_string)
+    # Create a temporary parser instance to use its extract_parameters method
+    parser = PromptParameterParser.new
+    result = parser.send(:extract_parameters, params_string)
+    delete_keys = params_string.scan(/--delete\s+(\w+)/).map { |s| s[0].to_sym }
+
+    {
+      settings: result[:parsed_params],
+      delete_keys: delete_keys
+    }
+  end
+
   def execute
     debug_log("Handling set settings command")
     settings = parsed_result[:settings]
@@ -10,7 +20,7 @@ class SetSettingsCommand < BaseCommand
 
     if settings.empty? && delete_keys.empty?
       debug_log("No settings or delete operations provided in command")
-      mattermost.respond(message, "❌ No settings or delete operations provided. Use `/help` to see available options.")
+      server.respond(message, "❌ No settings or delete operations provided. Use `/help` to see available options.")
       return
     end
 
@@ -19,7 +29,8 @@ class SetSettingsCommand < BaseCommand
 
     delete_keys.each do |key|
       debug_log("Deleting setting: #{key}")
-      sym = synonym(key).to_sym
+      synonym_key = synonym(key)
+      sym = synonym_key.to_sym if synonym_key
       if sym && user_settings.delete_param(sym)
         deleted_keys << sym.to_s.titleize
       end
@@ -58,7 +69,7 @@ class SetSettingsCommand < BaseCommand
     end
 
     response = response_parts.join("\n\n")
-    mattermost.respond(message, response)
+    server.respond(message, response)
   end
 
   private

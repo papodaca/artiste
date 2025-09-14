@@ -1,29 +1,44 @@
-require_relative "base_command"
-require_relative "set_settings_command"
-require_relative "get_settings_command"
-require_relative "get_details_command"
-require_relative "help_command"
-require_relative "unknown_command"
-
 COMMANDS = {
-  set_settings: SetSettingsCommand,
-  get_settings: GetSettingsCommand,
-  get_details: GetDetailsCommand,
-  help: HelpCommand,
-  unknown_command: UnknownCommand
+  set_settings: {match: %r{^/set_settings\s+(.+)}, class: SetSettingsCommand},
+  get_settings: {match: "/get_settings", class: GetSettingsCommand},
+  details: {match: %r{^/details\s+(.+)}, class: GetDetailsCommand},
+  help: {match: "/help", class: HelpCommand},
+  text: {match: %r{^/text\s+(.+)}, class: TextCommand},
+  unknown_command: {class: UnknownCommand}
 }.freeze
 
 class CommandDispatcher
-  def self.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
-    command_type = parsed_result[:type]
-    command_class = COMMANDS[command_type]
-    if command_class.nil?
-      command_class = UnknownCommand
-      parsed_result[:type] = :unknown_command
-      parsed_result[:error] = "Unknown command type: #{command_type}"
-    end
+  def self.execute(*args)
+    command_type = args.dig(2, :type)
 
-    command = command_class.new(mattermost, message, parsed_result, user_settings, debug_log_enabled)
-    command.execute
+    # Handle unknown command types
+    if !COMMANDS.key?(command_type) || COMMANDS[command_type].nil?
+      # Transform the parsed_result to have the correct type and error message
+      parsed_result = args[2] || {}
+      error_msg = "Unknown command type: #{command_type || ""}"
+      # Override the type and error in the parsed_result
+      modified_parsed_result = parsed_result.merge({type: :unknown_command, error: error_msg})
+      # Create new args with modified parsed_result
+      modified_args = args.dup
+      modified_args[2] = modified_parsed_result
+      command_class = UnknownCommand
+      command_class.new(*modified_args).execute
+    else
+      command_class = COMMANDS.dig(command_type, :class)
+      command_class.new(*args).execute
+    end
+  end
+
+  def self.parse_command(command_string)
+    COMMANDS.each do |type, command|
+      next unless command.has_key?(:match)
+      if command[:match].is_a?(String) && command_string.strip == command[:match]
+        return {type:}
+      elsif command[:match].is_a?(Regexp) && (match = command[:match].match(command_string))
+        params = command[:class].parse(*match.to_a[1..]) if command[:class].respond_to?(:parse)
+        return {type:}.merge(params || {})
+      end
+    end
+    {type: :unknown_command, error: "Unknown command: #{command_string}"}
   end
 end

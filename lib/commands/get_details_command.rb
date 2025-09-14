@@ -1,6 +1,10 @@
-require_relative "base_command"
-
 class GetDetailsCommand < BaseCommand
+  def self.parse(image_name)
+    {
+      image_name: image_name.strip
+    }
+  end
+
   def execute
     debug_log("Handling get details command")
     image_name = parsed_result[:image_name]
@@ -11,7 +15,7 @@ class GetDetailsCommand < BaseCommand
 
     if task.nil?
       debug_log("No generation task found for image: #{image_name}")
-      mattermost.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
+      server.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
       return
     end
 
@@ -69,7 +73,7 @@ class GetDetailsCommand < BaseCommand
 
     # ComfyUI details
     if task.comfyui_prompt_id
-      details_text << "**ComfyUI Info:**"
+      details_text << "**Info:**"
       details_text << "• Prompt ID: #{task.comfyui_prompt_id}"
       details_text << ""
     end
@@ -82,6 +86,6 @@ class GetDetailsCommand < BaseCommand
       details_text << "```"
     end
 
-    mattermost.respond(message, details_text.join("\n"))
+    server.respond(message, details_text.join("\n"))
   end
 end

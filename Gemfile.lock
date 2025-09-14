@@ -65,6 +65,8 @@ GEM
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2025.0826)
+    mini_magick (5.3.1)
+      logger
     mini_mime (1.1.5)
     minitest (5.25.5)
     multi_xml (0.7.2)
@@ -73,6 +75,8 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.3.0)
     netrc (0.11.0)
+    openai (0.22.1)
+      connection_pool
     opus-ruby (1.0.1)
       ffi
     ostruct (0.6.3)
@@ -215,6 +219,8 @@ DEPENDENCIES
   eventmachine
   httparty
   json
+  mini_magick
+  openai
   ostruct
   pry
   rack

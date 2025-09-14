@@ -1,6 +1,6 @@
 class ServerStrategy
-  def self.create_strategy
-    server_type = ENV["ARTISTE_SERVER"]&.downcase || "mattermost"
+  def self.create
+    server_type = ENV.fetch("ARTISTE_SERVER", "mattermost").downcase
 
     case server_type
     when "discord"
@@ -20,18 +20,18 @@ class ServerStrategy
   end
 
   def initialize(options)
-    raise "NOT IMPLIMENTED"
+    raise NotImplementedError
   end
 
   def connect(&block)
-    raise "NOT IMPLIMENTED"
+    raise NotImplementedError
   end
 
   def respond(message, reply)
-    raise "NOT IMPLIMENTED"
+    raise NotImplementedError
   end
 
   def update(message, reply, update)
-    raise "NOT IMPLIMENTED"
+    raise NotImplementedError
   end
 end

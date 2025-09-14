@@ -126,8 +126,21 @@ RSpec.describe SetSettingsCommand do
       let(:parsed_result) { {settings: {}, delete_keys: delete_keys} }
       let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
 
-      it "raises an error due to bug in code" do
-        expect { command.execute }.to raise_error(NoMethodError, /undefined method.*to_sym.*for nil/)
+      it "does not raise an error and simply ignores non-existent settings" do
+        expect { command.execute }.not_to raise_error
+      end
+
+      it "saves user settings even when no valid settings are deleted" do
+        expect(user_settings).to receive(:save)
+        command.execute
+      end
+
+      it "responds with a message indicating no changes were made" do
+        expect(mattermost).to receive(:respond) do |msg, response|
+          expect(msg).to eq(message)
+          expect(response).to include("ℹ️ No changes made to settings.")
+        end
+        command.execute
       end
     end
 

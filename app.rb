@@ -37,8 +37,10 @@ EM.run do
   debug_log("Environment variables - MATTERMOST_CHANNELS: #{ENV["MATTERMOST_CHANNELS"] || "NOT SET"}")
   debug_log("Environment variables - DISCORD_TOKEN: #{ENV["DISCORD_TOKEN"] ? "SET" : "NOT SET"}")
   debug_log("Environment variables - DISCORD_CHANNELS: #{ENV["DISCORD_CHANNELS"] || "NOT SET"}")
+  debug_log("Environment variables - ARTISTE_IMAGE_GENERATION: #{ENV["ARTISTE_IMAGE_GENERATION"] || "comfyu"}")
   debug_log("Environment variables - COMFYUI_URL: #{ENV["COMFYUI_URL"] || "http://localhost:8188"}")
   debug_log("Environment variables - COMFYUI_TOKEN: #{ENV["COMFYUI_TOKEN"] ? "SET" : "NOT SET"}")
+  debug_log("Environment variables - CHUTES_TOKEN: #{ENV["CHUTES_TOKEN"] ? "SET" : "NOT SET"}")
 
   if options[:web].present?
     photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
@@ -54,13 +56,8 @@ EM.run do
     server.start
   end
 
-  server_strategy = ServerStrategy.create_strategy
-
-  comfyui = ComfyuiClient.new(
-    ENV["COMFYUI_URL"] || "http://localhost:8188",
-    ENV["COMFYUI_TOKEN"],
-    "workflows"
-  )
+  server_strategy = ServerStrategy.create
+  image_generation_client = ImageGenerationClient.create
 
   Signal.trap("INT") do
     server.stop
@@ -72,7 +69,7 @@ EM.run do
     EM.stop
   end
 
-  debug_log("Initialized #{ENV["ARTISTE_SERVER"] || "mattermost"} server and ComfyUI clients")
+  debug_log("Initialized #{ENV["ARTISTE_SERVER"] || "mattermost"} server and #{ENV["ARTISTE_IMAGE_GENERATION"] || "comfyui"} client")
 
   server_strategy.connect do |message|
     debug_log("Received message from #{ENV["ARTISTE_SERVER"] || "mattermost"} server")
@@ -133,21 +130,38 @@ EM.run do
         debug_log("User settings: #{user_params.inspect}")
         debug_log("Final parameters for generation: #{final_params.inspect}")
 
-        result = comfyui.generate_and_wait(final_params, 1.hour.seconds.to_i) do |kind, comfyui_prompt_id, progress|
-          if comfyui_prompt_id.present? && comfyui_prompt_id != generation_task.comfyui_prompt_id
-            debug_log("Setting the generation task's comfyui_prompt_id to #{comfyui_prompt_id}")
-            generation_task.comfyui_prompt_id = comfyui_prompt_id
-            generation_task.save
+        # Generate image using the appropriate client
+        if image_generation_client.is_a?(ComfyuiClient)
+          result = image_generation_client.generate_and_wait(final_params, 1.hour.seconds.to_i) do |kind, comfyui_prompt_id, progress|
+            if comfyui_prompt_id.present? && comfyui_prompt_id != generation_task.comfyui_prompt_id
+              debug_log("Setting the generation task's comfyui_prompt_id to #{comfyui_prompt_id}")
+              generation_task.comfyui_prompt_id = comfyui_prompt_id
+              generation_task.save
+            end
+            if kind == :running
+              debug_log("Starting image generation process for task ##{generation_task.id}")
+              generation_task.mark_processing
+              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{DEBUG_MODE ? final_params.to_json : ""}")
+            end
+            if kind == :progress
+              debug_log("Generation progress for task ##{generation_task.id}, #{progress.join(", ")}")
+              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map { |p| p.to_s + "%" }.join(", ")}.#{DEBUG_MODE ? final_params.to_json : ""}")
+            end
           end
-          if kind == :running
-            debug_log("Starting image generation process for task ##{generation_task.id}")
-            generation_task.mark_processing
-            server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{DEBUG_MODE ? final_params.to_json : ""}")
-          end
-          if kind == :progress
-            debug_log("Generation progress for task ##{generation_task.id}, #{progress.join(", ")}")
-            server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map { |p| p.to_s + "%" }.join(", ")}.#{DEBUG_MODE ? final_params.to_json : ""}")
-          end
+        else # Chutes or other clients
+          # For Chutes, we'll simulate the progress callbacks since it doesn't have the same progress tracking
+          server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{DEBUG_MODE ? final_params.to_json : ""}")
+          generation_task.mark_processing
+
+          result = image_generation_client.generate(final_params)
+
+          # Simulate completion callback
+          debug_log("Image generation completed successfully for task ##{generation_task.id}")
+          server_strategy.update(message, reply, "🎨 Image generation completed!#{DEBUG_MODE ? final_params.to_json : ""}")
+
+          # Format the result to match what the rest of the code expects
+          # If the result doesn't already have a filename, generate one
+          result[:filename] ||= "chutes_#{Time.now.to_i}.png"
         end
         debug_log("Image generation completed successfully for task ##{generation_task.id}")
 
@@ -156,6 +170,11 @@ EM.run do
         target_dir = generation_task.file_path
         filepath = File.join(target_dir, filename)
         File.write(filepath, result[:image_data])
+
+        if generation_task.comfyui_prompt_id.nil? && result.has_key?(:prompt_id)
+          generation_task.comfyui_prompt_id = result[:prompt_id]
+          generation_task.save
+        end
 
         Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filepath} > /dev/null 2>&1")
 

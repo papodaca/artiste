@@ -18,7 +18,7 @@ RSpec.describe BaseCommand do
 
   describe "#initialize" do
     it "sets mattermost instance variable" do
-      expect(command.mattermost).to eq(mattermost)
+      expect(command.server).to eq(mattermost)
     end
 
     it "sets message instance variable" do

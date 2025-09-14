@@ -20,9 +20,9 @@ RSpec.describe PromptParameterParser do
 
   describe "#parse" do
     context "when prompt is a command (starts with /)" do
-      it "calls parse_command" do
+      it "calls CommandDispatcher.parse_command" do
         parser = described_class.new
-        expect(parser).to receive(:parse_command).with("/help")
+        expect(CommandDispatcher).to receive(:parse_command).with("/help")
         parser.parse("/help", "flux")
       end
     end
@@ -144,50 +144,6 @@ RSpec.describe PromptParameterParser do
     end
   end
 
-  describe "#parse_command" do
-    context "when command is /set_settings" do
-      it "calls parse_set_settings_command" do
-        parser = described_class.new
-        expect(parser).to receive(:parse_set_settings_command).with("--ar 3:2 --steps 30")
-        parser.parse_command("/set_settings --ar 3:2 --steps 30")
-      end
-    end
-
-    context "when command is /get_settings" do
-      it "calls parse_get_settings_command" do
-        parser = described_class.new
-        expect(parser).to receive(:parse_get_settings_command)
-        parser.parse_command("/get_settings")
-      end
-    end
-
-    context "when command is /details" do
-      it "calls parse_details_command" do
-        parser = described_class.new
-        expect(parser).to receive(:parse_details_command).with("test_image.png")
-        parser.parse_command("/details test_image.png")
-      end
-    end
-
-    context "when command is /help" do
-      it "calls parse_help_command" do
-        parser = described_class.new
-        expect(parser).to receive(:parse_help_command)
-        parser.parse_command("/help")
-      end
-    end
-
-    context "when command is unknown" do
-      it "returns unknown command response" do
-        parser = described_class.new
-        result = parser.parse_command("/unknown")
-        expect(result[:type]).to eq(:unknown_command)
-        expect(result[:command]).to eq("/unknown")
-        expect(result[:error]).to eq("Unknown command: /unknown")
-      end
-    end
-  end
-
   describe "#extract_parameters" do
     it "extracts all parameters correctly" do
       parser = described_class.new
@@ -206,14 +162,15 @@ RSpec.describe PromptParameterParser do
       expect(result[:clean_text]).to eq("test prompt")
     end
 
-    it "handles multiple delete keys in set_settings command" do
+    it "handles multiple delete keys in set_settings command parameters" do
       parser = described_class.new
-      result = parser.send(:parse_set_settings_command, "--ar 3:2 --steps 30 --delete aspect_ratio --delete steps")
+      params_string = "--ar 3:2 --steps 30 --delete aspect_ratio --delete steps"
+      result = parser.send(:extract_parameters, params_string)
+      delete_keys = params_string.scan(/--delete\s+(\w+)/).map { |s| s[0].to_sym }
 
-      expect(result[:type]).to eq(:set_settings)
-      expect(result[:settings][:aspect_ratio]).to eq("3:2")
-      expect(result[:settings][:steps]).to eq(30)
-      expect(result[:delete_keys]).to contain_exactly(:aspect_ratio, :steps)
+      expect(result[:parsed_params][:aspect_ratio]).to eq("3:2")
+      expect(result[:parsed_params][:steps]).to eq(30)
+      expect(delete_keys).to contain_exactly(:aspect_ratio, :steps)
     end
   end
 
@@ -271,19 +228,6 @@ RSpec.describe PromptParameterParser do
       parser = described_class.new
       width, height = parser.send(:aspect_ratio_to_dimensions, "invalid", 1024)
       expect([width, height]).to eq([1024, 1024])
-    end
-  end
-
-  describe "#generate_help_text" do
-    it "returns help text" do
-      parser = described_class.new
-      help_text = parser.send(:generate_help_text)
-      expect(help_text).to be_a(String)
-      expect(help_text).to include("Available commands:")
-      expect(help_text).to include("/set_settings")
-      expect(help_text).to include("/get_settings")
-      expect(help_text).to include("/details")
-      expect(help_text).to include("/help")
     end
   end
 end
