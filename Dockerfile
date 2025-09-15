@@ -17,3 +17,4 @@ RUN apt-get update \
 
 CMD [ "ruby", "app.rb" ]
 EXPOSE 4567
+EXPOSE 4568

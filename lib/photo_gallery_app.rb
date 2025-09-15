@@ -3,6 +3,7 @@
 require "sinatra/base"
 require "pathname"
 require "base64"
+require_relative "photo_gallery_websocket"
 
 class PhotoGalleryApp < Sinatra::Base
   # Set up the web server
@@ -17,6 +18,8 @@ class PhotoGalleryApp < Sinatra::Base
   def initialize(photos_path = File.join(settings.root, "..", "db", "photos"))
     @photos_path = photos_path
     super()
+    # Only start WebSocket server if not in test environment
+    start_websocket_server unless ENV['RACK_ENV'] == 'test'
   end
 
   configure do
@@ -28,6 +31,19 @@ class PhotoGalleryApp < Sinatra::Base
     set :host_authorization, {
       permitted_hosts: allowed_hosts
     }
+  end
+
+  def start_websocket_server
+    # Start WebSocket server in a separate thread
+    Thread.new do
+      begin
+        PhotoGalleryWebSocket.start_server(host: "0.0.0.0", port: 4568)
+      rescue => e
+        puts "Failed to start WebSocket server: #{e.message}"
+        puts e.backtrace.join("\n")
+      end
+    end
+    sleep 0.1 # Give the thread a moment to start
   end
 
   # Helper method to get all completed photos from the database

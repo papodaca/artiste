@@ -19,6 +19,7 @@ gem "sqlite3"
 gem "thin"
 gem "uri"
 gem "websocket-eventmachine-client"
+gem "websocket-eventmachine-server"
 gem "zeitwerk"
 
 group :development, :test do

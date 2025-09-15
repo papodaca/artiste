@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import PhotoItem from "./PhotoItem.svelte";
   import PhotoDetailsModal from "./PhotoDetailsModal.svelte";
 
@@ -10,6 +10,8 @@
   const batchSize = 20;
   let selectedPhoto = null;
   let showModal = false;
+  let websocket = null;
+  let connectionStatus = "disconnected";
 
   // Fetch initial photos
   onMount(async () => {
@@ -17,6 +19,15 @@
     window.addEventListener("scroll", handleScroll);
     // Check if we need to load more immediately
     setTimeout(() => handleScroll(), 100);
+
+    // Connect to WebSocket server
+    connectWebSocket();
+  });
+
+  onDestroy(() => {
+    if (websocket) {
+      websocket.close();
+    }
   });
 
   // Load photos from API
@@ -69,13 +80,128 @@
     showModal = false;
     selectedPhoto = null;
   }
+
+  // WebSocket connection
+  function connectWebSocket() {
+    try {
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsHost = window.location.hostname;
+      let wsUrl = "";
+      if (
+        wsHost === "localhost" ||
+        wsHost === "127.0.0.1" ||
+        wsHost === "[::1]"
+      ) {
+        const wsPort = window.location.port === "" ? "" : `:4568`;
+        wsUrl = `${wsProtocol}//${wsHost}${wsPort}`;
+      } else {
+        wsUrl = `${wsProtocol}//${wsHost}/ws`;
+      }
+
+      websocket = new WebSocket(wsUrl);
+      connectionStatus = "connecting";
+
+      websocket.onopen = () => {
+        console.log("WebSocket connected");
+        connectionStatus = "connected";
+      };
+
+      websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log("WebSocket disconnected");
+        connectionStatus = "disconnected";
+        // Attempt to reconnect after 5 seconds
+        setTimeout(() => connectWebSocket(), 5000);
+      };
+
+      websocket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        connectionStatus = "error";
+      };
+    } catch (error) {
+      console.error("Failed to connect to WebSocket:", error);
+      connectionStatus = "error";
+    }
+  }
+
+  function handleWebSocketMessage(data) {
+    console.log("Received WebSocket message:", data);
+
+    switch (data.type) {
+      case "new_photo":
+        // Add new photo to the beginning of the list
+        photos = [data.photo_path, ...photos];
+        break;
+
+      case "photo_updated":
+        // Handle photo updates if needed
+        console.log("Photo updated:", data.photo_path);
+        break;
+
+      case "pong":
+        // Handle pong response
+        break;
+
+      default:
+        console.log("Unknown WebSocket message type:", data.type);
+    }
+  }
+
+  // Send ping to keep connection alive
+  function sendPing() {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      websocket.send(JSON.stringify({ type: "ping" }));
+    }
+  }
+
+  // Start ping interval
+  setInterval(sendPing, 30000);
 </script>
 
 <div class="max-w-6xl mx-auto p-5">
+  <!-- WebSocket connection status indicator - Upper right -->
+  <div
+    class="fixed top-4 right-4 flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg text-xs z-50"
+  >
+    <div
+      class={`w-2 h-2 rounded-full ${
+        connectionStatus === "connected"
+          ? "bg-green-500"
+          : connectionStatus === "connecting"
+            ? "bg-yellow-500"
+            : connectionStatus === "error"
+              ? "bg-red-500"
+              : "bg-gray-500"
+      }`}
+    ></div>
+    <span class="text-gray-600 dark:text-gray-400">
+      {connectionStatus === "connected"
+        ? "Live"
+        : connectionStatus === "connecting"
+          ? "Connecting..."
+          : connectionStatus === "error"
+            ? "Connection Error"
+            : "Disconnected"}
+    </span>
+  </div>
+
   <h1
     class="text-center text-gray-800 dark:text-gray-200 mb-8 text-3xl font-bold flex items-center justify-center gap-3"
   >
-    Photo Gallery
+    <img
+      src="/assets/artiste.png"
+      alt="Artiste"
+      class="w-12 h-12 rounded-full object-cover"
+    />
+    Artiste
   </h1>
 
   {#if photos.length === 0}
