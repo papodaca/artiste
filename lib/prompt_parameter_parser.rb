@@ -111,6 +111,12 @@ class PromptParameterParser
       clean_text.gsub!(/--no\s+[^-]+(?=\s*(?:--|$))/, "")
     end
 
+    # Extract private flag
+    if text.match(/--private/)
+      params[:private] = true
+      clean_text.gsub!(/--private/, "")
+    end
+
     # Clean up extra whitespace
     clean_text = clean_text.gsub(/\s+/, " ").strip
 

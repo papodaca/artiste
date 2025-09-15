@@ -120,7 +120,8 @@ EM.run do
         prompt: full_prompt,
         parameters: final_params.to_json,
         workflow_type: final_params[:model] || "flux",
-        status: "pending"
+        status: "pending",
+        private: final_params.has_key?(:private)
       )
       debug_log("Created generation task ##{generation_task.id}")
 

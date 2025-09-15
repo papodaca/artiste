@@ -33,7 +33,7 @@ class PhotoGalleryApp < Sinatra::Base
   # Helper method to get all completed photos from the database
   def get_photos(offset: 0, limit: nil)
     # Get all completed generation tasks, ordered by completed_at in descending order (newest first)
-    tasks = GenerationTask.completed.reverse_order(:completed_at)
+    tasks = GenerationTask.pub.reverse_order(:completed_at)
 
     # Build photo paths from task data
     photos = tasks.map do |task|
@@ -96,6 +96,7 @@ class PhotoGalleryApp < Sinatra::Base
     when ".png" then "image/png"
     when ".jpg", ".jpeg" then "image/jpeg"
     when ".svg" then "image/svg+xml"
+    when ".map" then "application/json"
     else "application/octet-stream"
     end
 

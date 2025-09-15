@@ -33,6 +33,7 @@ DB.create_table? :generation_tasks do
   String :comfyui_prompt_id # ComfyUI's prompt ID for tracking
   String :output_filename
   Text :error_message # Error details if generation fails
+  TrueClass :private, default: false # Flag for private images
   DateTime :queued_at, default: Sequel::CURRENT_TIMESTAMP
   DateTime :started_at
   DateTime :completed_at
@@ -43,7 +44,28 @@ DB.create_table? :generation_tasks do
   index [:user_id, :status]
   index :queued_at
 end
-# sqlite3 db/artiste.db "ALTER TABLE generation_tasks ADD COLUMN exif_data TEXT DEFAULT '{}';"
+
+begin
+  unless DB.schema(:generation_tasks).any? { |column, info| column == :private }
+    puts "Adding generation_task private column"
+    DB.alter_table(:generation_tasks) do
+      add_column(:private, TrueClass, default: false)
+    end
+  end
+rescue => e
+  puts "Warning: Could not check/add private column: #{e.message}"
+end
+
+begin
+  unless DB.schema(:generation_tasks).any? { |column, info| column == :exif_data }
+    puts "Adding generation_task exif_data column"
+    DB.alter_table(:generation_tasks) do
+      add_column(:exif_data, Text, default: '{}')
+    end
+  end
+rescue => e
+  puts "Warning: Could not check/add exif_data column: #{e.message}"
+end
 
 # User Settings model
 class UserSettings < Sequel::Model(:user_settings)
@@ -169,5 +191,9 @@ class GenerationTask < Sequel::Model(:generation_tasks)
   
   def self.failed
     where(status: 'failed').order(:completed_at)
+  end
+
+  def self.pub
+    where(status: 'completed', private: false)
   end
 end

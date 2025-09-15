@@ -32,7 +32,8 @@ class HelpCommand < BaseCommand
       /help - Show this help message
       
       For image generation, use normal prompts with optional parameters:
-        Example: "a beautiful sunset --ar 16:9 --steps 20"
+        --private             Generate images that are not publicly shared
+        Example: "a beautiful sunset --ar 16:9 --steps 20 --private"
     HELP
   end
 

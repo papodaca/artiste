@@ -155,7 +155,7 @@ RSpec.describe PhotoGalleryApp do
     end
 
     before do
-      allow(GenerationTask).to receive(:where).and_return([task])
+      allow(GenerationTask).to receive(:where).with(output_filename: "ComfyUI_00157_.png").and_return(double(first: task))
     end
 
     it "returns photo details as JSON" do
@@ -169,7 +169,7 @@ RSpec.describe PhotoGalleryApp do
     end
 
     it "returns 404 when task is not found" do
-      allow(GenerationTask).to receive(:where).and_return([])
+      allow(GenerationTask).to receive(:where).with(output_filename: "ComfyUI_00157_.png").and_return(double(first: nil))
       get "/api/photo-details/2025/09/01/ComfyUI_00157_.png", {}, "HTTP_HOST" => "localhost"
       expect(last_response.status).to eq(404)
     end
@@ -193,11 +193,11 @@ RSpec.describe PhotoGalleryApp do
     end
 
     before do
-      # Mock the GenerationTask.completed scope to return our test tasks
+      # Mock the GenerationTask.pub scope to return our test tasks
       # Create a mock dataset that responds to reverse_order
       mock_dataset = double("Dataset")
       allow(mock_dataset).to receive(:reverse_order).with(:completed_at).and_return([task2, task1])
-      allow(GenerationTask).to receive(:completed).and_return(mock_dataset)
+      allow(GenerationTask).to receive(:pub).and_return(mock_dataset)
     end
 
     it "returns sorted list of photo paths from completed tasks" do
@@ -225,7 +225,7 @@ RSpec.describe PhotoGalleryApp do
       # Create a mock dataset that responds to reverse_order and returns an empty array
       mock_dataset = double("Dataset")
       allow(mock_dataset).to receive(:reverse_order).with(:completed_at).and_return([])
-      allow(GenerationTask).to receive(:completed).and_return(mock_dataset)
+      allow(GenerationTask).to receive(:pub).and_return(mock_dataset)
       expect(app_instance.get_photos).to eq([])
     end
 
@@ -236,11 +236,11 @@ RSpec.describe PhotoGalleryApp do
       allow(task_with_nil).to receive(:output_filename).and_return(nil)
       allow(task_with_nil).to receive(:file_path).and_return("db/photos/2025/09/01")
 
-      # Mock GenerationTask.completed to return tasks including one with nil output_filename
+      # Mock GenerationTask.pub to return tasks including one with nil output_filename
       # Create a mock dataset that responds to reverse_order
       mock_dataset = double("Dataset")
       allow(mock_dataset).to receive(:reverse_order).with(:completed_at).and_return([task2, task_with_nil, task1])
-      allow(GenerationTask).to receive(:completed).and_return(mock_dataset)
+      allow(GenerationTask).to receive(:pub).and_return(mock_dataset)
 
       # Test the get_photos method
       app_instance = PhotoGalleryApp.allocate
