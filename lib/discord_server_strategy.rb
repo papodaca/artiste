@@ -51,27 +51,14 @@ class DiscordServerStrategy < ServerStrategy
   end
 
   def update(message, reply, update, file = nil, filename = nil)
-    event = message["_event"]
-    # Discord doesn't support editing messages from bots in the same way
-    # Instead, we'll send a new message or edit if it's our own message
-    channel = event.channel
+    channel = message["channel"]
+    response = reply["response"]
 
     if file && filename
-      # Send file with updated message
-      channel.send_file(file, caption: update, filename: filename)
+      response.delete("status message")
+      channel.send_file(file, caption: "", filename: filename)
     else
-      # Try to edit the original reply if it's ours, otherwise send new message
-      begin
-        if reply && reply["id"]
-          original_message = channel.load_message(reply["id"])
-          original_message.edit(update)
-        else
-          channel.send_message(update)
-        end
-      rescue
-        # If editing fails, send a new message
-        channel.send_message(update)
-      end
+      response.edit(update)
     end
   end
 

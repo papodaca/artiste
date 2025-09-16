@@ -109,51 +109,33 @@ RSpec.describe DiscordServerStrategy do
 
   describe "#update" do
     let(:strategy) { described_class.new(**options) }
-    let(:event_double) { instance_double(Discordrb::Events::MessageEvent) }
     let(:channel_double) { instance_double(Discordrb::Channel) }
+    let(:response_double) { instance_double(Discordrb::Message) }
     let(:message) do
       {
-        "_event" => event_double
+        "channel" => channel_double
       }
     end
-    let(:reply) { {"id" => "12345"} }
+    let(:reply) { {"response" => response_double} }
     let(:update_text) { "Updated message" }
-
-    before do
-      allow(event_double).to receive(:channel).and_return(channel_double)
-    end
 
     context "when file and filename are provided" do
       let(:file) { "file content" }
       let(:filename) { "test.png" }
 
-      it "sends a file with caption to the channel" do
-        expect(channel_double).to receive(:send_file).with(file, caption: update_text, filename: filename)
+      it "sends a file with empty caption to the channel" do
+        expect(response_double).to receive(:delete).with("status message")
+        expect(channel_double).to receive(:send_file).with(file, caption: "", filename: filename)
 
         strategy.update(message, reply, update_text, file, filename)
       end
     end
 
     context "when no file is provided" do
-      it "attempts to edit the original reply if it has an ID" do
-        message_double = instance_double(Discordrb::Message)
-        expect(channel_double).to receive(:load_message).with("12345").and_return(message_double)
-        expect(message_double).to receive(:edit).with(update_text)
+      it "edits the original response" do
+        expect(response_double).to receive(:edit).with(update_text)
 
         strategy.update(message, reply, update_text)
-      end
-
-      it "sends a new message if editing fails" do
-        expect(channel_double).to receive(:load_message).with("12345").and_raise(StandardError.new("Edit failed"))
-        expect(channel_double).to receive(:send_message).with(update_text)
-
-        strategy.update(message, reply, update_text)
-      end
-
-      it "sends a new message if reply has no ID" do
-        expect(channel_double).to receive(:send_message).with(update_text)
-
-        strategy.update(message, {}, update_text)
       end
     end
   end
@@ -211,6 +193,81 @@ RSpec.describe DiscordServerStrategy do
       expect(message_data).to be_a(Hash)
       expect(message_data["event"]).to eq("posted")
       expect(message_data["message"]).to eq("Hello <@98765>")
+      expect(message_data["data"]["post"]["message"]).to eq("Hello <@98765>")
+      expect(message_data["data"]["post"]["user_id"]).to eq("user-123")
+      expect(message_data["data"]["post"]["channel_id"]).to eq("123456789")
+      expect(message_data["data"]["post"]["id"]).to eq("message-456")
+      expect(message_data["data"]["channel_type"]).to eq("O")
+      expect(message_data["data"]["mentions"]).to include("98765")
+    end
+
+    it "processes messages in DMs" do
+      allow(event_double).to receive(:user).and_return(user_double)
+      allow(user_double).to receive(:bot_account?).and_return(false)
+      allow(user_double).to receive(:id).and_return("user-123")
+      allow(event_double).to receive(:message).and_return(message_double)
+      allow(message_double).to receive(:content).and_return("Hello")
+      allow(message_double).to receive(:id).and_return("message-456")
+      allow(event_double).to receive(:channel).and_return(channel_double)
+      allow(channel_double).to receive(:pm?).and_return(true)
+      allow(channel_double).to receive(:id).and_return(123456789)
+
+      handler_called = false
+      strategy.instance_variable_set(:@message_handler, proc { |data, event|
+        handler_called = true
+      })
+
+      strategy.send(:handle_message, event_double)
+
+      expect(handler_called).to be true
+    end
+
+    it "processes messages in allowed channels" do
+      allow(event_double).to receive(:user).and_return(user_double)
+      allow(user_double).to receive(:bot_account?).and_return(false)
+      allow(user_double).to receive(:id).and_return("user-123")
+      allow(event_double).to receive(:message).and_return(message_double)
+      allow(message_double).to receive(:content).and_return("Hello")
+      allow(message_double).to receive(:id).and_return("message-456")
+      allow(event_double).to receive(:channel).and_return(channel_double)
+      allow(channel_double).to receive(:pm?).and_return(false)
+      allow(channel_double).to receive(:id).and_return(123456789)
+
+      # Set up allowed channels to include this channel
+      strategy.instance_variable_set(:@discord_channels, [123456789])
+
+      handler_called = false
+      strategy.instance_variable_set(:@message_handler, proc { |data, event|
+        handler_called = true
+      })
+
+      strategy.send(:handle_message, event_double)
+
+      expect(handler_called).to be true
+    end
+
+    it "ignores messages not in allowed channels when channels are specified" do
+      allow(event_double).to receive(:user).and_return(user_double)
+      allow(user_double).to receive(:bot_account?).and_return(false)
+      allow(user_double).to receive(:id).and_return("user-123")
+      allow(event_double).to receive(:message).and_return(message_double)
+      allow(message_double).to receive(:content).and_return("Hello")
+      allow(message_double).to receive(:id).and_return("message-456")
+      allow(event_double).to receive(:channel).and_return(channel_double)
+      allow(channel_double).to receive(:pm?).and_return(false)
+      allow(channel_double).to receive(:id).and_return(999999999) # Different channel
+
+      # Set up allowed channels that don't include this channel
+      strategy.instance_variable_set(:@discord_channels, [123456789])
+
+      handler_called = false
+      strategy.instance_variable_set(:@message_handler, proc { |data, event|
+        handler_called = true
+      })
+
+      strategy.send(:handle_message, event_double)
+
+      expect(handler_called).to be false
     end
   end
 
@@ -230,6 +287,7 @@ RSpec.describe DiscordServerStrategy do
 
       expect(mentions).to include("12345")
       expect(mentions).to include("67890")
+      expect(mentions).not_to include("98765") # Bot not mentioned in content
     end
 
     it "includes bot ID when bot is mentioned" do
@@ -237,6 +295,8 @@ RSpec.describe DiscordServerStrategy do
       mentions = strategy.send(:extract_mentions, content)
 
       expect(mentions).to include("98765")
+      # The implementation includes duplicates, so we should check for unique values
+      expect(mentions.uniq).to contain_exactly("98765")
     end
 
     it "handles nickname mentions with !" do
@@ -244,6 +304,27 @@ RSpec.describe DiscordServerStrategy do
       mentions = strategy.send(:extract_mentions, content)
 
       expect(mentions).to include("12345")
+    end
+
+    it "includes bot ID when bot is mentioned alongside other users" do
+      content = "Hello <@12345> and <@98765>!"
+      mentions = strategy.send(:extract_mentions, content)
+
+      expect(mentions).to include("12345")
+      expect(mentions).to include("98765")
+      # The implementation includes duplicates, so we should check for unique values
+      expect(mentions.uniq).to contain_exactly("12345", "98765")
+    end
+
+    it "handles multiple mentions including bot" do
+      content = "<@12345> <@67890> <@98765>"
+      mentions = strategy.send(:extract_mentions, content)
+
+      expect(mentions).to include("12345")
+      expect(mentions).to include("67890")
+      expect(mentions).to include("98765")
+      # The implementation includes duplicates, so we should check for unique values
+      expect(mentions.uniq).to contain_exactly("12345", "67890", "98765")
     end
   end
 end
