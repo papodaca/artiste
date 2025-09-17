@@ -1,12 +1,16 @@
 require "websocket-eventmachine-server"
 require "json"
+require "net/http"
+require "uri"
 
 class PhotoGalleryWebSocket
   class << self
-    attr_accessor :connections
+    def connections
+      @connections ||= []
+    end
 
     def start_server(host: "0.0.0.0", port: 4568)
-      @connections = [] if @connections.nil?
+      connections # Initialize connections
       puts "Starting WebSocket server on #{host}:#{port}"
 
       EM.run do
@@ -33,6 +37,15 @@ class PhotoGalleryWebSocket
     end
 
     def broadcast(message)
+      if ENV["ARTISTE_PEER_URL"]
+        forward_to_peer(message)
+      else
+        # Normal mode: broadcast to local connections
+        local_broadcast(message)
+      end
+    end
+    
+    def local_broadcast(message)
       return if connections.empty?
 
       message_json = message.is_a?(String) ? message : message.to_json
@@ -40,6 +53,30 @@ class PhotoGalleryWebSocket
         ws.send(message_json)
       rescue
         connections.delete(ws)
+      end
+    end
+    
+    def forward_to_peer(message)
+      peer_url = ENV["ARTISTE_PEER_URL"]
+      return unless peer_url
+      
+      begin
+        uri = URI.parse("#{peer_url}/api/broadcast")
+        
+        http = Net::HTTP.new(uri.host, uri.port)
+        headers = {'Content-Type' => 'application/json'}
+        token = ENV["ARTISTE_PEER_TOKEN"]
+        headers['Authorization'] = "Bearer #{token}" if token
+        request = Net::HTTP::Post.new(uri.path, headers)
+        request.body = message.to_json
+        
+        response = http.request(request)
+        
+        if !response.is_a?(Net::HTTPSuccess)
+          puts "Failed to forward message to peer: #{response.code} #{response.message}"
+        end
+      rescue => e
+        puts "Error forwarding message to peer: #{e.message}"
       end
     end
 
@@ -77,3 +114,4 @@ class PhotoGalleryWebSocket
     end
   end
 end
+

@@ -3,7 +3,6 @@
 require "sinatra/base"
 require "pathname"
 require "base64"
-require_relative "photo_gallery_websocket"
 
 class PhotoGalleryApp < Sinatra::Base
   # Set up the web server
@@ -156,6 +155,41 @@ class PhotoGalleryApp < Sinatra::Base
 
       status 500
       return {error: "Internal server error: #{e.class.name}: #{e.message}"}.to_json
+    end
+  end
+
+  post "/api/broadcast" do
+    content_type :json
+
+    # Verify authentication token if configured
+    expected_token = ENV["ARTISTE_PEER_TOKEN"]
+    auth_header = request.env['HTTP_AUTHORIZATION']
+    unless auth_header && auth_header.start_with?('Bearer ')
+      status 401
+      return {error: "Authentication required"}.to_json
+    end
+    
+    provided_token = auth_header.sub('Bearer ', '')
+    puts "#{provided_token} != #{expected_token}"
+    if expected_token.nil? || provided_token != expected_token
+      status 403
+      return {error: "Invalid token"}.to_json
+    end
+
+    begin
+      # Parse the JSON request body
+      request_body = JSON.parse(request.body.read)
+
+      PhotoGalleryWebSocket.local_broadcast(request_body)
+
+      {status: "ok", message: "Broadcast successful"}.to_json
+    rescue JSON::ParserError
+      status 400
+      {error: "Invalid JSON"}.to_json
+    rescue => e
+      puts "Error processing broadcast: #{e.message}"
+      status 500
+      {error: "Internal server error"}.to_json
     end
   end
 
