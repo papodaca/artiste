@@ -24,12 +24,7 @@ class PhotoGalleryApp < Sinatra::Base
   configure do
     set :threaded, false
 
-    # Allow hosts from ALLOWED_HOSTS env var
-    allowed_hosts = ENV["ALLOWED_HOSTS"]&.split(",")&.map(&:strip) || ["localhost", "127.0.0.1"]
-
-    set :host_authorization, {
-      permitted_hosts: allowed_hosts
-    }
+    set :host_authorization, { permitted_hosts: [] }
   end
 
   def start_websocket_server
@@ -158,22 +153,57 @@ class PhotoGalleryApp < Sinatra::Base
     end
   end
 
+  # Helper method to check if IP is in allowed ranges
+  def ip_allowed?(ip)
+    # Allow localhost
+    return true if ip == "127.0.0.1" || ip == "::1"
+    
+    # Check if IP is within the configured CIDR range
+    cidr_range = ENV["ARTISTE_BROADCAST_CIDR"]
+    return false unless cidr_range
+    
+    begin
+      # Parse CIDR notation (e.g., "172.31.0.0/16")
+      network_str, prefix_str = cidr_range.split("/")
+      prefix = prefix_str.to_i
+      
+      # Convert IP and network to integer representation
+      ip_int = ip_to_int(ip)
+      network_int = ip_to_int(network_str)
+      
+      # Calculate network mask
+      mask = (0xffffffff << (32 - prefix)) & 0xffffffff
+      
+      # Check if IP is in the network range
+      (ip_int & mask) == (network_int & mask)
+    rescue => e
+      puts "Error parsing CIDR range #{cidr_range}: #{e.message}"
+      false
+    end
+  end
+
+  def ip_to_int(ip)
+    if ip.include?('.')
+      ip.split('.').map(&:to_i).pack('C*').unpack1('N')
+    else
+      0
+    end
+  end
+
+  def client_ip
+    if (forwarded_for = request.env['HTTP_X_FORWARDED_FOR'])
+      forwarded_for.split(',').first.strip
+    else
+      request.ip
+    end
+  end
+
   post "/api/broadcast" do
     content_type :json
 
-    # Verify authentication token if configured
-    expected_token = ENV["ARTISTE_PEER_TOKEN"]
-    auth_header = request.env['HTTP_AUTHORIZATION']
-    unless auth_header && auth_header.start_with?('Bearer ')
-      status 401
-      return {error: "Authentication required"}.to_json
-    end
-    
-    provided_token = auth_header.sub('Bearer ', '')
-    puts "#{provided_token} != #{expected_token}"
-    if expected_token.nil? || provided_token != expected_token
+    unless ip_allowed?(client_ip)
       status 403
-      return {error: "Invalid token"}.to_json
+      return {message: "Access denied."}.to_json
     end
 
     begin

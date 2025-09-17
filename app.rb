@@ -42,7 +42,7 @@ EM.run do
   debug_log("Environment variables - COMFYUI_TOKEN: #{ENV["COMFYUI_TOKEN"] ? "SET" : "NOT SET"}")
   debug_log("Environment variables - CHUTES_TOKEN: #{ENV["CHUTES_TOKEN"] ? "SET" : "NOT SET"}")
   debug_log("Environment variables - ARTISTE_PEER_URL: #{ENV["ARTISTE_PEER_URL"] || "NOT SET"}")
-  debug_log("Environment variables - ARTISTE_PEER_TOKEN: #{ENV["ARTISTE_PEER_TOKEN"] ? "SET" : "NOT SET"}")
+  debug_log("Environment variables - ARTISTE_BROADCAST_CIDR: #{ENV["ARTISTE_BROADCAST_CIDR"] ? "SET" : "NOT SET"}")
 
   if options[:web].present?
     photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
