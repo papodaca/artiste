@@ -3,7 +3,7 @@ class SetSettingsCommand < BaseCommand
     # Create a temporary parser instance to use its extract_parameters method
     parser = PromptParameterParser.new
     result = parser.send(:extract_parameters, params_string)
-    delete_keys = params_string.scan(/--delete\s+(\w+)/).map { |s| s[0].to_sym }
+    delete_keys = params_string.scan(/(?:--delete(?:=|\s+)|-d\s+)(\w+)/).map { |s| s[0].to_sym }
 
     {
       settings: result[:parsed_params],

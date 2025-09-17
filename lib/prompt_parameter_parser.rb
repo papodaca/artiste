@@ -14,6 +14,19 @@ class PromptParameterParser
     }
   }
 
+  PARAMS = {
+    model: {match: %r{(?:--model(?:=|\s+)|-m\s+)(\w+)}, clean: %r{(?:--model(?:=|\s+)|-m\s+)\w+}, parse: :to_s},
+    basesize: {match: %r{(?:--basesize(?:=|\s+)|-b\s+)(\d+)}, clean: %r{(?:--basesize(?:=|\s+)|-b\s+)\d+}, parse: :to_i},
+    aspect_ratio: {match: %r{(?:--ar(?:=|\s+)|-a\s+)([^\s-]+)}, clean: %r{(?:--ar(?:=|\s+)|-a\s+)[^\s-]+}, parse: :to_s},
+    shift: {match: %r{(?:--shift(?:=|\s+)|-S\s+)(\d+.?\d*)}, clean: %r{(?:--shift(?:=|\s+)|-S\s+)\d+.?\d*}, parse: :to_f},
+    width: {match: %r{(?:--width(?:=|\s+)|-w\s+)(\d+)}, clean: %r{(?:--width(?:=|\s+)|-w\s+)\d+}, parse: :to_i},
+    height: {match: %r{(?:--height(?:=|\s+)|-h\s+)(\d+)}, clean: %r{(?:--height(?:=|\s+)|-h\s+)(\d+)}, parse: :to_i},
+    steps: {match: %r{(?:--steps(?:=|\s+)|-s\s+)(\d+)}, clean: %r{(?:--steps(?:=|\s+)|-s\s+)\d+}, parse: :to_i},
+    seed: {match: %r{--seed(?:=|\s+)(\d+)}, clean: %r{--seed(?:=|\s+)\d+}, parse: :to_i},
+    negative_prompt: {match: %r{(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))}, clean: %r{(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))}, parse: :strip},
+    private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?}
+  }
+
   def self.parse(*args)
     new.parse(*args)
   end
@@ -38,7 +51,7 @@ class PromptParameterParser
 
     params[:model] = result.dig(:parsed_params, :model) if result[:parsed_params].has_key?(:model)
     default_params = DEFAULT_CONFIGS[params[:model].to_sym]
-    params.merge!(default_params) if default_params.present?
+    params.merge!(default_params) if default_params && !default_params.empty?
 
     # Merge in the parsed parameters
     params.merge!(result[:parsed_params])
@@ -59,62 +72,11 @@ class PromptParameterParser
     params = {}
     clean_text = text.dup
 
-    # Extract model first to determine basesize default
-    if (match = text.match(/--model\s+(\w+)/))
-      params[:model] = match[1].to_s
-      clean_text.gsub!(/--model\s+(\w+)/, "")
-    end
-
-    if (match = text.match(/--basesize\s+(\d+)/))
-      params[:basesize] = match[1].to_i
-      clean_text.gsub!(/--basesize\s+\d+/, "")
-    end
-
-    # Extract aspect ratio first (this may override width/height)
-    if (match = text.match(/--ar\s+([^\s-]+)/))
-      params[:aspect_ratio] = match[1]
-      clean_text.gsub!(/--ar\s+[^\s-]+/, "")
-    end
-
-    if (match = text.match(/--shift\s+(\d+.?\d*)/))
-      params[:shift] = match[1].to_f
-      clean_text.gsub!(/--shift\s+(\d+.?\d*)/, "")
-    end
-
-    # Extract width (this will override aspect ratio width if specified)
-    if (match = text.match(/--width\s+(\d+)/))
-      params[:width] = match[1].to_i
-      clean_text.gsub!(/--width\s+\d+/, "")
-    end
-
-    # Extract height (this will override aspect ratio height if specified)
-    if (match = text.match(/--height\s+(\d+)/))
-      params[:height] = match[1].to_i
-      clean_text.gsub!(/--height\s+\d+/, "")
-    end
-
-    # Extract steps
-    if (match = text.match(/--steps\s+(\d+)/))
-      params[:steps] = match[1].to_i
-      clean_text.gsub!(/--steps\s+\d+/, "")
-    end
-
-    # Extract seed
-    if (match = text.match(/--seed\s+(\d+)/))
-      params[:seed] = match[1].to_i
-      clean_text.gsub!(/--seed\s+\d+/, "")
-    end
-
-    # Extract negative prompt
-    if (match = text.match(/--no\s+([^-]+)(?=\s*(?:--|$))/))
-      params[:negative_prompt] = match[1].strip
-      clean_text.gsub!(/--no\s+[^-]+(?=\s*(?:--|$))/, "")
-    end
-
-    # Extract private flag
-    if text.match(/--private/)
-      params[:private] = true
-      clean_text.gsub!(/--private/, "")
+    PARAMS.each do |k, v|
+      if (match = v[:match].match(clean_text))
+        params[k] = match[1].send(v[:parse])
+        clean_text.gsub!(v[:clean], "")
+      end
     end
 
     # Clean up extra whitespace

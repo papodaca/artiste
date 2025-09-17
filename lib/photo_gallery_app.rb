@@ -19,7 +19,7 @@ class PhotoGalleryApp < Sinatra::Base
     @photos_path = photos_path
     super()
     # Only start WebSocket server if not in test environment
-    start_websocket_server unless ENV['RACK_ENV'] == 'test'
+    start_websocket_server unless ENV["RACK_ENV"] == "test"
   end
 
   configure do
@@ -36,12 +36,10 @@ class PhotoGalleryApp < Sinatra::Base
   def start_websocket_server
     # Start WebSocket server in a separate thread
     Thread.new do
-      begin
-        PhotoGalleryWebSocket.start_server(host: "0.0.0.0", port: 4568)
-      rescue => e
-        puts "Failed to start WebSocket server: #{e.message}"
-        puts e.backtrace.join("\n")
-      end
+      PhotoGalleryWebSocket.start_server(host: "0.0.0.0", port: 4568)
+    rescue => e
+      puts "Failed to start WebSocket server: #{e.message}"
+      puts e.backtrace.join("\n")
     end
     sleep 0.1 # Give the thread a moment to start
   end
@@ -76,49 +74,6 @@ class PhotoGalleryApp < Sinatra::Base
     send_file File.join(settings.root, "..", "frontend", "dist", "index.html")
   end
 
-  # Serve vite.svg file
-  get "/gallery.svg" do
-    file_path = File.join(settings.root, "..", "frontend", "dist", "gallery.svg")
-
-    # Check if file exists
-    if !File.exist?(file_path)
-      status 404
-      return "File not found"
-    end
-
-    headers "Content-Type" => "image/svg+xml"
-    File.read(file_path)
-  end
-
-  # Serve static files from Svelte build
-  get "/assets/*" do
-    asset_path = params[:splat][0]
-    file_path = File.join(settings.root, "..", "frontend", "dist", "assets", asset_path)
-
-    # Security check - ensure the path is within the assets directory
-    assets_dir = File.join(settings.root, "..", "frontend", "dist", "assets")
-    requested_path = file_path
-
-    # Check if file exists and is within the assets directory
-    if !File.exist?(requested_path) || !requested_path.start_with?(assets_dir)
-      status 404
-      return "File not found"
-    end
-
-    # Determine content type based on file extension
-    content_type = case File.extname(requested_path).downcase
-    when ".js" then "application/javascript"
-    when ".css" then "text/css"
-    when ".png" then "image/png"
-    when ".jpg", ".jpeg" then "image/jpeg"
-    when ".svg" then "image/svg+xml"
-    when ".map" then "application/json"
-    else "application/octet-stream"
-    end
-
-    headers "Content-Type" => content_type
-    File.read(requested_path)
-  end
 
   # API endpoint for infinite scroll - returns JSON list of photos
   get "/api/photos" do
@@ -204,35 +159,4 @@ class PhotoGalleryApp < Sinatra::Base
     end
   end
 
-  # Route to serve individual photos
-  get "/photo/*" do
-    photo_path = params[:splat][0]
-    full_path = File.join(photos_path, photo_path)
-
-    # Security check - ensure the path is within db/photos
-    photos_dir = File.realpath(photos_path)
-    requested_path = begin
-      File.realpath(full_path)
-    rescue
-      nil
-    end
-
-    if requested_path.nil? || !requested_path.start_with?(photos_dir) || !File.exist?(requested_path)
-      status 404
-      return "Photo not found"
-    end
-
-    # Determine content type based on file extension
-    content_type = case File.extname(requested_path).downcase
-    when ".jpg", ".jpeg" then "image/jpeg"
-    when ".png" then "image/png"
-    when ".gif" then "image/gif"
-    when ".bmp" then "image/bmp"
-    when ".webp" then "image/webp"
-    else "application/octet-stream"
-    end
-
-    headers "Content-Type" => content_type
-    File.read(requested_path)
-  end
 end

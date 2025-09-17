@@ -92,8 +92,7 @@
         wsHost === "127.0.0.1" ||
         wsHost === "[::1]"
       ) {
-        const wsPort = window.location.port === "" ? "" : `:4568`;
-        wsUrl = `${wsProtocol}//${wsHost}${wsPort}`;
+        wsUrl = `${wsProtocol}//${wsHost}:4568`;
       } else {
         wsUrl = `${wsProtocol}//${wsHost}/ws`;
       }

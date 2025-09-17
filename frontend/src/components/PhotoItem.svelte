@@ -53,7 +53,7 @@
 >
   <div class="block no-underline cursor-pointer" on:click={showDetails}>
     <img
-      src="/photo/{encodeURIComponent(photo)}"
+      src="/photos/{photo}"
       alt={getFilename(photo)}
       class="w-full h-64 object-cover block"
     />
@@ -70,8 +70,7 @@
     type="button"
     class="absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-md hover:shadow-lg transition-all duration-200 z-10"
     aria-label="Copy image URL to clipboard"
-    on:click={(event) =>
-      copyImageUrl(event, "/photo/" + encodeURIComponent(photo))}
+    on:click={(event) => copyImageUrl(event, `/photos/${photo}`)}
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"

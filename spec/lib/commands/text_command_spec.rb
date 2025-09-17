@@ -29,7 +29,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
 
@@ -38,7 +39,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
 
@@ -47,7 +49,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
 
@@ -56,7 +59,28 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "deepseek-ai/DeepSeek-R1",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
+      })
+    end
+
+    it "parses custom temperature" do
+      result = TextCommand.parse("--temperature 0.5 Write a poem about art")
+      expect(result).to eq({
+        model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
+        prompt: "Write a poem about art",
+        system_prompt: true,
+        temperature: 0.5
+      })
+    end
+
+    it "parses no-system" do
+      result = TextCommand.parse("--no-system Write a poem about art")
+      expect(result).to eq({
+        model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
+        prompt: "Write a poem about art",
+        system_prompt: false,
+        temperature: 0.7
       })
     end
 
@@ -65,7 +89,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "deepseek-ai/DeepSeek-R1",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
   end

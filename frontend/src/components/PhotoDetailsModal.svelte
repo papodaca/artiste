@@ -129,7 +129,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div class="text-center">
                 <img
-                  src="/photo/{encodeURIComponent(photoDetails.photo_path)}"
+                  src="/photos/{photoDetails.photo_path}"
                   alt={photoDetails.task.output_filename}
                   class="max-w-full h-auto rounded-lg shadow-lg"
                 />

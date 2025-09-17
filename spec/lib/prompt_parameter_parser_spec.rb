@@ -3,17 +3,19 @@ require "spec_helper"
 RSpec.describe PromptParameterParser do
   describe ".parse" do
     it "delegates to instance method" do
-      instance_double(PromptParameterParser)
-      expect_any_instance_of(PromptParameterParser).to receive(:parse).with("test prompt", "flux")
+      parser = instance_double(PromptParameterParser)
+      expect(PromptParameterParser).to receive(:new).and_return(parser)
+      expect(parser).to receive(:parse).with("test prompt", "flux")
       described_class.parse("test prompt", "flux")
     end
   end
 
   describe ".resolve_params" do
     it "delegates to instance method" do
-      instance_double(PromptParameterParser)
+      parser = instance_double(PromptParameterParser)
+      expect(PromptParameterParser).to receive(:new).and_return(parser)
       params = {test: "value"}
-      expect_any_instance_of(PromptParameterParser).to receive(:resolve_params).with(params)
+      expect(parser).to receive(:resolve_params).with(params)
       described_class.resolve_params(params)
     end
   end
@@ -113,7 +115,7 @@ RSpec.describe PromptParameterParser do
 
         expect(result[:basesize]).to eq(512)
         expect(result[:width]).to eq(512)
-        expect(result[:height]).to eq(336) # 512 * 2/3 = 341.33, rounded to nearest 8 = 336
+        expect(result[:height]).to eq(336) # 512 * 2/3 = 341.33, rounded to nearest multiple of 8 = 336
         expect(result[:prompt]).to eq("a beautiful landscape")
       end
     end
@@ -171,6 +173,58 @@ RSpec.describe PromptParameterParser do
       expect(result[:parsed_params][:aspect_ratio]).to eq("3:2")
       expect(result[:parsed_params][:steps]).to eq(30)
       expect(delete_keys).to contain_exactly(:aspect_ratio, :steps)
+    end
+
+    it "extracts shorthand parameters correctly" do
+      parser = described_class.new
+      text = "test prompt -m flux -a 16:9 -w 512 -h 768 -s 10 -n ugly, bad quality -S 2.5 -b 1024 -p"
+      result = parser.send(:extract_parameters, text)
+
+      expect(result[:parsed_params][:model]).to eq("flux")
+      expect(result[:parsed_params][:aspect_ratio]).to eq("16:9")
+      expect(result[:parsed_params][:width]).to eq(512)
+      expect(result[:parsed_params][:height]).to eq(768)
+      expect(result[:parsed_params][:steps]).to eq(10)
+      expect(result[:parsed_params][:negative_prompt]).to eq("ugly, bad quality")
+      expect(result[:parsed_params][:shift]).to eq(2.5)
+      expect(result[:parsed_params][:basesize]).to eq(1024)
+      expect(result[:parsed_params][:private]).to be(true)
+      expect(result[:clean_text]).to eq("test prompt")
+    end
+
+    it "handles mixed shorthand and longform parameters" do
+      parser = described_class.new
+      text = "test prompt -m qwen --width 1024 -h 512 --steps 20 -n bad quality"
+      result = parser.send(:extract_parameters, text)
+
+      expect(result[:parsed_params][:model]).to eq("qwen")
+      expect(result[:parsed_params][:width]).to eq(1024)
+      expect(result[:parsed_params][:height]).to eq(512)
+      expect(result[:parsed_params][:steps]).to eq(20)
+      expect(result[:parsed_params][:negative_prompt]).to eq("bad quality")
+      expect(result[:clean_text]).to eq("test prompt")
+    end
+
+    it "handles mixed shorthand and longform parameters with =" do
+      parser = described_class.new
+      text = "test prompt -m qwen --width=1024 -h 512 --steps=20 -n bad quality"
+      result = parser.send(:extract_parameters, text)
+
+      expect(result[:parsed_params][:model]).to eq("qwen")
+      expect(result[:parsed_params][:width]).to eq(1024)
+      expect(result[:parsed_params][:height]).to eq(512)
+      expect(result[:parsed_params][:steps]).to eq(20)
+      expect(result[:parsed_params][:negative_prompt]).to eq("bad quality")
+      expect(result[:clean_text]).to eq("test prompt")
+    end
+
+    it "handles seed parameter (longform only)" do
+      parser = described_class.new
+      text = "test prompt --seed 12345"
+      result = parser.send(:extract_parameters, text)
+
+      expect(result[:parsed_params][:seed]).to eq(12345)
+      expect(result[:clean_text]).to eq("test prompt")
     end
   end
 

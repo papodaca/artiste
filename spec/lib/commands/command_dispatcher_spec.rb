@@ -7,7 +7,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
 
@@ -16,7 +17,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "Write a poem about art",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
 
@@ -25,7 +27,8 @@ RSpec.describe TextCommand do
       expect(result).to eq({
         model: "Qwen/Qwen3-235B-A22B-Instruct-2507",
         prompt: "",
-        system_prompt: true
+        system_prompt: true,
+        temperature: 0.7
       })
     end
   end

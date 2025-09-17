@@ -5,11 +5,8 @@ class PhotoGalleryWebSocket
   class << self
     attr_accessor :connections
 
-    def connections
-      @connections ||= []
-    end
-
     def start_server(host: "0.0.0.0", port: 4568)
+      @connections = [] if @connections.nil?
       puts "Starting WebSocket server on #{host}:#{port}"
 
       EM.run do
@@ -40,11 +37,9 @@ class PhotoGalleryWebSocket
 
       message_json = message.is_a?(String) ? message : message.to_json
       connections.each do |ws|
-        begin
-          ws.send(message_json)
-        rescue
-          connections.delete(ws)
-        end
+        ws.send(message_json)
+      rescue
+        connections.delete(ws)
       end
     end
 
@@ -71,16 +66,14 @@ class PhotoGalleryWebSocket
     private
 
     def handle_message(ws, msg, type)
-      begin
-        data = JSON.parse(msg)
+      data = JSON.parse(msg)
 
-        # Handle different message types here if needed
-        case data["type"]
-        when "ping"
-          ws.send({ type: "pong", timestamp: Time.now.to_i }.to_json)
-        end
-      rescue JSON::ParserError
+      # Handle different message types here if needed
+      case data["type"]
+      when "ping"
+        ws.send({type: "pong", timestamp: Time.now.to_i}.to_json)
       end
+    rescue JSON::ParserError
     end
   end
 end

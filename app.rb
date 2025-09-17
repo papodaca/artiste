@@ -47,6 +47,15 @@ EM.run do
     web_app = PhotoGalleryApp.new(photos_dir)
 
     dispatch = Rack::Builder.app do
+      if ENV["RACK_ENV"] == "development"
+        use Rack::Static, urls: ["/photos"], root: File.join(File.dirname(__FILE__), "db"),
+          header_rules: [[:all, {'Cache-Control' => 'public, max-age=86400'}]]
+      end
+      
+      frontend_dist_path = File.join(File.dirname(__FILE__), "frontend", "dist")
+      use Rack::Static, urls: ["/assets"], root: frontend_dist_path,
+        header_rules: [[:all, {'Cache-Control' => 'public, max-age=3600'}]]
+      
       map "/" do
         run web_app
       end
@@ -171,11 +180,11 @@ EM.run do
         target_dir = generation_task.file_path
         filepath = File.join(target_dir, filename)
         File.write(filepath, result[:image_data])
-        
+
         # Get photo path for WebSocket notification (relative path without db/photos prefix)
         photo_relative_path = target_dir.gsub(/^db\/photos\//, "")
         photo_relative_path = File.join(photo_relative_path, filename)
-        
+
         # Notify WebSocket clients about new photo
         if defined?(PhotoGalleryWebSocket)
           task_data = {

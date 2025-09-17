@@ -12,9 +12,14 @@ MODELS_MAP = {
 class TextCommand < BaseCommand
   def self.parse(prompt)
     model = "qwen"
+    temperature = 0.7
 
-    if (match = prompt.match(/--model\s+([^\s]+)/))
+    if (match = prompt.match(/(?:--model(?:=|\s+)|-m\s+)([^\s]+)/))
       model = match[1].to_s.downcase
+    end
+
+    if (match = prompt.match(/(?:--temperature(?:=|\s+)|-t\s+)(\d+.\d?)/))
+      temperature = match[1].to_f
     end
 
     system_prompt = true
@@ -23,11 +28,13 @@ class TextCommand < BaseCommand
     end
 
     {
-      model: MODELS_MAP[model],
+      model: MODELS_MAP[model] || MODELS_MAP["qwen"],
       system_prompt: system_prompt,
+      temperature: temperature,
       prompt: prompt
         .gsub(/--model\s+([^\s]+)/, "")
         .gsub("--no-system", "")
+        .gsub(/(?:--temperature(?:=|\s+)|-t\s+)\d+.\d?/, "")
         .strip
     }
   end
@@ -37,6 +44,7 @@ class TextCommand < BaseCommand
     prompt = parsed_result[:prompt]
     model = parsed_result[:model]
     system_prompt = parsed_result[:system_prompt]
+    temperature = parsed_result[:temperature]
 
     if prompt.nil? || prompt.strip.empty?
       debug_log("No prompt provided for text command")
@@ -52,7 +60,7 @@ class TextCommand < BaseCommand
       reply = server.respond(message, initial_response)
 
       # Then stream the response and update the message
-      stream_text(prompt, reply, model, system_prompt)
+      stream_text(prompt, reply, model, system_prompt, temperature)
     rescue => e
       debug_log("Error generating text: #{e.message}")
       server.respond(message, "❌ Sorry, I encountered an error while generating the text response.")
@@ -61,7 +69,7 @@ class TextCommand < BaseCommand
 
   private
 
-  def stream_text(prompt, reply, model, has_system_prompt)
+  def stream_text(prompt, reply, model, has_system_prompt, temperature)
     # Get API configuration from environment variables
     api_key = ENV["OPENAI_API_KEY"]
     api_url = ENV["OPENAI_API_URL"] || "https://api.openai.com/v1"
@@ -90,7 +98,8 @@ class TextCommand < BaseCommand
     # Stream the response
     stream = client.chat.completions.stream_raw(
       model: model,
-      messages: messages
+      messages: messages,
+      temperature: temperature
     )
 
     # Process each chunk of the stream
