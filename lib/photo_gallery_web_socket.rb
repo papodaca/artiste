@@ -44,7 +44,7 @@ class PhotoGalleryWebSocket
         local_broadcast(message)
       end
     end
-    
+
     def local_broadcast(message)
       return if connections.empty?
 
@@ -55,23 +55,23 @@ class PhotoGalleryWebSocket
         connections.delete(ws)
       end
     end
-    
+
     def forward_to_peer(message)
       peer_url = ENV["ARTISTE_PEER_URL"]
       return unless peer_url
-      
+
       begin
         uri = URI.parse("#{peer_url}/api/broadcast")
-        
+
         http = Net::HTTP.new(uri.host, uri.port)
-        headers = {'Content-Type' => 'application/json'}
+        headers = {"Content-Type" => "application/json"}
         token = ENV["ARTISTE_PEER_TOKEN"]
-        headers['Authorization'] = "Bearer #{token}" if token
+        headers["Authorization"] = "Bearer #{token}" if token
         request = Net::HTTP::Post.new(uri.path, headers)
         request.body = message.to_json
-        
+
         response = http.request(request)
-        
+
         if !response.is_a?(Net::HTTPSuccess)
           puts "Failed to forward message to peer: #{response.code} #{response.message}"
         end
@@ -114,4 +114,3 @@ class PhotoGalleryWebSocket
     end
   end
 end
-

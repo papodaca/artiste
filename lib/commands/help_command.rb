@@ -4,8 +4,10 @@ class HelpCommand < BaseCommand
       Available parameters:
         --ar|-a <ratio>        Set aspect ratio (e.g., 3:2, 16:9, 1:1)
         --basesize|-b <pixels> Set base size for aspect ratio calculations
-        --height|-h <pixels>   Set image height  
+        --height|-h <pixels>   Set image height
         --model|-m <name>      Set model (flux, qwen)
+        --preset|-P <name>     Apply preset parameters and append preset prompt
+        --<preset_name>        Apply preset directly by name (e.g., --vibrant_colors)
         --private|-p           Generate images that are not publicly shared
         --shift|-S <number>    Set shift parameter (for qwen model)
         --steps|-s <number>    Set number of generation steps, more steps more better
@@ -35,6 +37,15 @@ class HelpCommand < BaseCommand
           --no-system             Disable Artiste's system prompt
       
       /help - Show this help message
+      
+      Preset management commands:
+      /create_preset <name> <prompt> [options] - Create a new preset with prompt and parameters
+      /list_presets - List all available presets
+      /show_preset <name> - Show details of a specific preset
+      /update_preset <name> <prompt> [options] - Update a preset (creator-only)
+      /delete_preset <name> - Delete a preset (creator-only)
+      
+      Example: "landscape photo --preset vibrant_colors"
     HELP
   end
 

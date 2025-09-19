@@ -118,6 +118,177 @@ RSpec.describe PromptParameterParser do
         expect(result[:height]).to eq(336) # 512 * 2/3 = 341.33, rounded to nearest multiple of 8 = 336
         expect(result[:prompt]).to eq("a beautiful landscape")
       end
+
+      context "with preset parameter" do
+        before(:all) do
+          DB[:presets].delete
+          create(:preset, :landscape)
+          create(:preset, :params_only)
+        end
+
+        it "applies preset parameters and appends preset prompt" do
+          parser = described_class.new
+          result = parser.parse("a sunset scene --preset landscape_preset --steps 25", "flux")
+
+          expect(result[:steps]).to eq(25) # Should override preset value
+          expect(result[:aspect_ratio]).to eq("16:9") # Should use preset value
+          expect(result[:model]).to eq("flux") # Should use preset value
+          expect(result[:width]).to eq(1344) # Should be calculated from aspect ratio
+          expect(result[:height]).to eq(768) # Should be calculated from aspect ratio
+          expect(result[:prompt]).to eq("a sunset scene beautiful mountain landscape with trees")
+        end
+
+        it "only applies preset parameters that aren't already specified" do
+          parser = described_class.new
+          result = parser.parse("a scene --preset landscape_preset --model qwen --ar 1:1", "flux")
+
+          expect(result[:model]).to eq("qwen") # Should override preset
+          expect(result[:aspect_ratio]).to eq("1:1") # Should override preset
+          expect(result[:steps]).to eq(30) # Should use preset value since not overridden
+          expect(result[:width]).to eq(1328) # From qwen defaults
+          expect(result[:height]).to eq(1328) # From qwen defaults
+        end
+
+        it "handles non-existent preset gracefully" do
+          parser = described_class.new
+          result = parser.parse("a scene --preset nonexistent_preset --steps 20", "flux")
+
+          expect(result[:steps]).to eq(20) # Should use specified value
+          expect(result[:prompt]).to eq("a scene") # Should not append anything
+        end
+
+        it "handles preset with empty prompt" do
+          parser = described_class.new
+          result = parser.parse("custom prompt --preset params_only_preset", "flux")
+
+          expect(result[:steps]).to eq(40)
+          expect(result[:width]).to eq(800)
+          expect(result[:height]).to eq(600)
+          expect(result[:prompt]).to eq("custom prompt") # Should not append empty prompt
+        end
+
+        it "extracts preset parameter from text" do
+          parser = described_class.new
+          result = parser.send(:extract_parameters, "test prompt --preset my_preset --steps 20")
+
+          expect(result[:parsed_params][:preset]).to eq("my_preset")
+          expect(result[:parsed_params][:steps]).to eq(20)
+          expect(result[:clean_text]).to eq("test prompt")
+        end
+
+        it "handles shorthand preset parameter" do
+          parser = described_class.new
+          result = parser.send(:extract_parameters, "test prompt -P my_preset --steps 20")
+
+          expect(result[:parsed_params][:preset]).to eq("my_preset")
+          expect(result[:parsed_params][:steps]).to eq(20)
+          expect(result[:clean_text]).to eq("test prompt")
+        end
+
+        context "with direct preset name syntax (--<preset_name>)" do
+          before(:all) do
+            # Ensure the preset exists for testing
+            create(:preset, :vibrant_colors) unless Preset.find_by_name("vibrant_colors")
+          end
+
+          it "extracts direct preset name and applies parameters" do
+            parser = described_class.new
+            result = parser.parse("landscape scene --vibrant_colors --width 800", "flux")
+
+            expect(result[:steps]).to eq(25) # From preset
+            expect(result[:model]).to eq("flux") # From preset
+            expect(result[:width]).to eq(800) # From user parameter (overrides any preset width)
+            expect(result[:prompt]).to eq("landscape scene vibrant and colorful style")
+          end
+
+          it "removes direct preset name from clean text" do
+            parser = described_class.new
+            result = parser.send(:extract_parameters, "landscape scene --vibrant_colors --width 800")
+
+            expect(result[:parsed_params][:preset]).to eq("vibrant_colors")
+            expect(result[:parsed_params][:width]).to eq(800)
+            expect(result[:clean_text]).to eq("landscape scene")
+          end
+
+          it "ignores --<word> patterns that are regular parameters" do
+            parser = described_class.new
+            result = parser.send(:extract_parameters, "test --width 800 --height 600")
+
+            expect(result[:parsed_params][:preset]).to be_nil
+            expect(result[:parsed_params][:width]).to eq(800)
+            expect(result[:parsed_params][:height]).to eq(600)
+            expect(result[:clean_text]).to eq("test")
+          end
+
+          it "ignores --<word> patterns that don't match existing presets" do
+            parser = described_class.new
+            result = parser.send(:extract_parameters, "test --nonexistent_preset --width 800")
+
+            expect(result[:parsed_params][:preset]).to be_nil
+            expect(result[:parsed_params][:width]).to eq(800)
+            expect(result[:clean_text]).to eq("test --nonexistent_preset")
+          end
+
+          it "handles multiple direct preset names (uses first one found)" do
+            # Create another preset for testing
+            create(:preset, :high_quality) unless Preset.find_by_name("high_quality")
+
+            parser = described_class.new
+            result = parser.send(:extract_parameters, "test --vibrant_colors --high_quality --width 800")
+
+            # Should use the first preset found
+            expect(result[:parsed_params][:preset]).to eq("vibrant_colors")
+            expect(result[:parsed_params][:width]).to eq(800)
+            expect(result[:clean_text]).to eq("test")
+          end
+
+          it "applies multiple direct preset names in order" do
+            # Create additional presets for testing
+            create(:preset, :realistic) unless Preset.find_by_name("realistic")
+            create(:preset, :colorful) unless Preset.find_by_name("colorful")
+
+            parser = described_class.new
+            result = parser.parse("its a tables --realistic --colorful --steps 25", "flux")
+
+            # Should apply both presets in order
+            expect(result[:steps]).to eq(25) # User parameter overrides both presets
+            expect(result[:model]).to eq("flux") # From realistic preset
+            expect(result[:width]).to eq(800) # From colorful preset
+            expect(result[:prompt]).to eq("its a tables photorealistic, detailed vibrant colors, saturated")
+          end
+
+          it "handles comma-separated preset names in --preset parameter" do
+            # Create additional presets for testing
+            create(:preset, :realistic) unless Preset.find_by_name("realistic")
+            create(:preset, :colorful) unless Preset.find_by_name("colorful")
+
+            parser = described_class.new
+            result = parser.parse("its a tables --preset realistic,colorful --steps 25", "flux")
+
+            # Should apply both presets in order
+            expect(result[:steps]).to eq(25) # User parameter overrides both presets
+            expect(result[:model]).to eq("flux") # From realistic preset
+            expect(result[:width]).to eq(800) # From colorful preset
+            expect(result[:prompt]).to eq("its a tables photorealistic, detailed vibrant colors, saturated")
+          end
+
+          it "handles mixed direct preset names and comma-separated presets" do
+            # Create additional presets for testing
+            create(:preset, :anime) unless Preset.find_by_name("anime")
+            create(:preset, :photorealistic) unless Preset.find_by_name("photorealistic")
+            create(:preset, :colorful) unless Preset.find_by_name("colorful")
+
+            parser = described_class.new
+            result = parser.parse("a beautiful scene --anime --preset photorealistic,colorful --steps 25", "flux")
+
+            # Should apply all presets in order: photorealistic, colorful, anime
+            expect(result[:steps]).to eq(25) # User parameter overrides all presets
+            expect(result[:model]).to eq("qwen") # From anime preset (overrides photorealistic's flux)
+            expect(result[:width]).to eq(800) # From colorful preset (overrides qwen defaults)
+            expect(result[:prompt]).to eq("a beautiful scene photorealistic, detailed vibrant colors, saturated anime style, cel-shaded")
+          end
+        end
+      end
     end
   end
 

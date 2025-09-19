@@ -4,6 +4,11 @@ COMMANDS = {
   details: {match: %r{^/details\s+(.+)}, class: GetDetailsCommand},
   help: {match: "/help", class: HelpCommand},
   text: {match: %r{^/text\s+(.+)}, class: TextCommand},
+  create_preset: {match: %r{^/create_preset\s+(.+)}, class: CreatePresetCommand},
+  list_presets: {match: %r{^/list_presets(?:\s|$)}, class: ListPresetsCommand},
+  update_preset: {match: %r{^/update_preset\s+(.+)}, class: UpdatePresetCommand},
+  delete_preset: {match: %r{^/delete_preset\s+(.+)}, class: DeletePresetCommand},
+  show_preset: {match: %r{^/show_preset\s+(.+)}, class: ShowPresetCommand},
   unknown_command: {class: UnknownCommand}
 }.freeze
 

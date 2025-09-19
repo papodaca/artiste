@@ -24,7 +24,7 @@ class PhotoGalleryApp < Sinatra::Base
   configure do
     set :threaded, false
 
-    set :host_authorization, { permitted_hosts: [] }
+    set :host_authorization, {permitted_hosts: []}
   end
 
   def start_websocket_server
@@ -67,7 +67,6 @@ class PhotoGalleryApp < Sinatra::Base
   get "/" do
     send_file File.join(settings.root, "..", "frontend", "dist", "index.html")
   end
-
 
   # API endpoint for infinite scroll - returns JSON list of photos
   get "/api/photos" do
@@ -157,23 +156,23 @@ class PhotoGalleryApp < Sinatra::Base
   def ip_allowed?(ip)
     # Allow localhost
     return true if ip == "127.0.0.1" || ip == "::1"
-    
+
     # Check if IP is within the configured CIDR range
     cidr_range = ENV["ARTISTE_BROADCAST_CIDR"]
     return false unless cidr_range
-    
+
     begin
       # Parse CIDR notation (e.g., "172.31.0.0/16")
       network_str, prefix_str = cidr_range.split("/")
       prefix = prefix_str.to_i
-      
+
       # Convert IP and network to integer representation
       ip_int = ip_to_int(ip)
       network_int = ip_to_int(network_str)
-      
+
       # Calculate network mask
       mask = (0xffffffff << (32 - prefix)) & 0xffffffff
-      
+
       # Check if IP is in the network range
       (ip_int & mask) == (network_int & mask)
     rescue => e
@@ -183,16 +182,16 @@ class PhotoGalleryApp < Sinatra::Base
   end
 
   def ip_to_int(ip)
-    if ip.include?('.')
-      ip.split('.').map(&:to_i).pack('C*').unpack1('N')
+    if ip.include?(".")
+      ip.split(".").map(&:to_i).pack("C*").unpack1("N")
     else
       0
     end
   end
 
   def client_ip
-    if (forwarded_for = request.env['HTTP_X_FORWARDED_FOR'])
-      forwarded_for.split(',').first.strip
+    if (forwarded_for = request.env["HTTP_X_FORWARDED_FOR"])
+      forwarded_for.split(",").first.strip
     else
       request.ip
     end
@@ -222,5 +221,4 @@ class PhotoGalleryApp < Sinatra::Base
       {error: "Internal server error"}.to_json
     end
   end
-
 end

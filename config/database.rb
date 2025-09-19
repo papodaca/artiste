@@ -1,13 +1,8 @@
 require 'sequel'
 require 'fileutils'
 
-# Database configuration
-DB_PATH = File.expand_path("../db/artiste.db", __dir__)
-
-# Ensure db directory exists
+DB_PATH = File.expand_path(ENV["RACK_ENV"] =="test" ? "../db/artiste_test.db" : "../db/artiste.db", __dir__)
 FileUtils.mkdir_p(File.dirname(DB_PATH))
-
-# Connect to SQLite database
 DB = Sequel.sqlite(DB_PATH)
 
 # Create user_settings table if it doesn't exist
@@ -20,7 +15,6 @@ DB.create_table? :user_settings do
   DateTime :updated_at, default: Sequel::CURRENT_TIMESTAMP
 end
 
-# Create generation_tasks table if it doesn't exist
 DB.create_table? :generation_tasks do
   primary_key :id
   String :user_id, null: false
@@ -45,26 +39,19 @@ DB.create_table? :generation_tasks do
   index :queued_at
 end
 
-begin
-  unless DB.schema(:generation_tasks).any? { |column, info| column == :private }
-    puts "Adding generation_task private column"
-    DB.alter_table(:generation_tasks) do
-      add_column(:private, TrueClass, default: false)
-    end
-  end
-rescue => e
-  puts "Warning: Could not check/add private column: #{e.message}"
-end
-
-begin
-  unless DB.schema(:generation_tasks).any? { |column, info| column == :exif_data }
-    puts "Adding generation_task exif_data column"
-    DB.alter_table(:generation_tasks) do
-      add_column(:exif_data, Text, default: '{}')
-    end
-  end
-rescue => e
-  puts "Warning: Could not check/add exif_data column: #{e.message}"
+DB.create_table? :presets do
+  primary_key :id
+  String :name, null: false, unique: true
+  String :user_id, null: false
+  String :username
+  Text :prompt, null: false
+  Text :parameters, default: '{}' # JSON string of parameters
+  String :example_image # URL to example image
+  DateTime :created_at, default: Sequel::CURRENT_TIMESTAMP
+  DateTime :updated_at, default: Sequel::CURRENT_TIMESTAMP
+  
+  index :user_id
+  index :name
 end
 
 # User Settings model
@@ -195,5 +182,29 @@ class GenerationTask < Sequel::Model(:generation_tasks)
 
   def self.pub
     where(status: 'completed', private: false)
+  end
+end
+
+class Preset < Sequel::Model(:presets)
+  def before_update
+    self.updated_at = Time.now
+    super
+  end
+  
+  def parsed_parameters
+    JSON.parse(self.parameters, symbolize_names: true) rescue {}
+  end
+  
+  def set_parameters(params_hash)
+    self.parameters = params_hash.to_json
+  end
+
+  # Class methods for querying
+  def self.for_user(user_id)
+    where(user_id: user_id).order(:name)
+  end
+  
+  def self.find_by_name(name)
+    where(name: name).first
   end
 end

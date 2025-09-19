@@ -135,6 +135,66 @@ RSpec.describe CommandDispatcher do
       end
     end
 
+    context "when command type is :create_preset" do
+      let(:parsed_result) { {type: :create_preset, name: "test_preset", prompt: "test prompt"} }
+      let(:command_instance) { instance_double(CreatePresetCommand, execute: "Preset created") }
+
+      it "creates and executes a CreatePresetCommand" do
+        expect(CreatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings, debug_log_enabled).and_return(command_instance)
+        expect(command_instance).to receive(:execute)
+
+        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      end
+    end
+
+    context "when command type is :list_presets" do
+      let(:parsed_result) { {type: :list_presets} }
+      let(:command_instance) { instance_double(ListPresetsCommand, execute: "Presets listed") }
+
+      it "creates and executes a ListPresetsCommand" do
+        expect(ListPresetsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings, debug_log_enabled).and_return(command_instance)
+        expect(command_instance).to receive(:execute)
+
+        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      end
+    end
+
+    context "when command type is :show_preset" do
+      let(:parsed_result) { {type: :show_preset, name: "test_preset"} }
+      let(:command_instance) { instance_double(ShowPresetCommand, execute: "Preset shown") }
+
+      it "creates and executes a ShowPresetCommand" do
+        expect(ShowPresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings, debug_log_enabled).and_return(command_instance)
+        expect(command_instance).to receive(:execute)
+
+        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      end
+    end
+
+    context "when command type is :update_preset" do
+      let(:parsed_result) { {type: :update_preset, name: "test_preset", prompt: "updated prompt"} }
+      let(:command_instance) { instance_double(UpdatePresetCommand, execute: "Preset updated") }
+
+      it "creates and executes an UpdatePresetCommand" do
+        expect(UpdatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings, debug_log_enabled).and_return(command_instance)
+        expect(command_instance).to receive(:execute)
+
+        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      end
+    end
+
+    context "when command type is :delete_preset" do
+      let(:parsed_result) { {type: :delete_preset, name: "test_preset"} }
+      let(:command_instance) { instance_double(DeletePresetCommand, execute: "Preset deleted") }
+
+      it "creates and executes a DeletePresetCommand" do
+        expect(DeletePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings, debug_log_enabled).and_return(command_instance)
+        expect(command_instance).to receive(:execute)
+
+        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      end
+    end
+
     it "returns the result of the command execution" do
       parsed_result = {type: :help, help_text: "Help information"}
       command_instance = instance_double(HelpCommand, execute: "Help executed successfully")

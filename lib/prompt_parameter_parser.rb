@@ -24,7 +24,9 @@ class PromptParameterParser
     steps: {match: %r{(?:--steps(?:=|\s+)|-s\s+)(\d+)}, clean: %r{(?:--steps(?:=|\s+)|-s\s+)\d+}, parse: :to_i},
     seed: {match: %r{--seed(?:=|\s+)(\d+)}, clean: %r{--seed(?:=|\s+)\d+}, parse: :to_i},
     negative_prompt: {match: %r{(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))}, clean: %r{(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))}, parse: :strip},
-    private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?}
+    preset: {match: %r{(?:--preset(?:=|\s+)|-P\s+)([\w,]+)}, clean: %r{(?:--preset(?:=|\s+)|-P\s+)[\w,]+}, parse: :to_s},
+    private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?},
+    image: {match: %r{(?:--image(?:=|\s+)|-i\s+)(https?://[^\s]+)}, clean: %r{(?:--image(?:=|\s+)|-i\s+)https?://[^\s]+}, parse: :to_s}
   }
 
   def self.parse(*args)
@@ -35,7 +37,7 @@ class PromptParameterParser
     new.resolve_params(params)
   end
 
-  def parse(full_prompt, model)
+  def parse(full_prompt, model, for_preset: false)
     # Check if this is a command (starts with /)
     if full_prompt.strip.start_with?("/")
       return CommandDispatcher.parse_command(full_prompt.strip)
@@ -49,14 +51,112 @@ class PromptParameterParser
       negative_prompt: ""
     }
 
+    # Track which parameters were explicitly provided
+    explicitly_provided_params = result[:parsed_params].keys.dup
+
+    # Handle both old single preset and new multiple presets format
+    if explicitly_provided_params.include?(:presets)
+      explicitly_provided_params.delete(:presets)
+      explicitly_provided_params << :preset
+    end
+
+    # Apply preset parameters if specified (support multiple presets)
+    presets_to_apply = []
+
+    # Handle both old single preset format and new multiple presets format
+    if result[:parsed_params].has_key?(:preset)
+      # Handle comma-separated preset values
+      preset_value = result[:parsed_params][:preset]
+      if preset_value.include?(",")
+        presets_to_apply.concat(preset_value.split(",").map(&:strip))
+      else
+        presets_to_apply << preset_value
+      end
+    end
+
+    if result[:parsed_params].has_key?(:presets)
+      presets_to_apply.concat(result[:parsed_params][:presets])
+    end
+
+    # Also handle direct preset names that were found but not stored in :preset
+    # (for backward compatibility with existing tests)
+    if result[:parsed_params].has_key?(:preset)
+      # Look for additional direct preset names in the original text
+      full_prompt.scan(/--(\w+)/) do |match|
+        preset_name = match[0]
+        # Check if this is a valid preset name (not a regular parameter)
+        unless PARAMS.key?(preset_name.to_sym) || PARAMS.any? { |_, v| v[:match].match?("--#{preset_name}") }
+          preset = Preset.find_by_name(preset_name)
+          if preset && preset_name != result[:parsed_params][:preset]
+            presets_to_apply << preset_name
+          end
+        end
+      end
+    end
+
+    # Remove duplicates to prevent processing the same preset multiple times
+    presets_to_apply.uniq!
+
+    # Apply presets in order (first to last)
+    presets_to_apply.each do |preset_name|
+      preset = Preset.find_by_name(preset_name)
+
+      if preset
+        preset_params = preset.parsed_parameters
+        # Merge preset parameters, but don't override existing ones
+        preset_params.each do |key, value|
+          params[key] = value unless result[:parsed_params].has_key?(key)
+          # Mark that these parameters came from a preset so they won't be overridden by defaults
+          params[:"_preset_#{key}"] = true
+        end
+
+        # Append preset prompt to the current prompt
+        if preset.prompt && !preset.prompt.empty?
+          result[:clean_text] = "#{result[:clean_text]} #{preset.prompt}".strip
+        end
+      end
+    end
+
     params[:model] = result.dig(:parsed_params, :model) if result[:parsed_params].has_key?(:model)
     default_params = DEFAULT_CONFIGS[params[:model].to_sym]
-    params.merge!(default_params) if default_params && !default_params.empty?
+    if default_params && !default_params.empty?
+      # Apply defaults only for parameters that weren't set by presets
+      default_params.each do |key, value|
+        params[key] = value unless params.has_key?(:"_preset_#{key}")
+      end
+    end
 
-    # Merge in the parsed parameters
-    params.merge!(result[:parsed_params])
+    # Merge in the parsed parameters (preset params already handled above)
+    non_preset_params = result[:parsed_params].except(:preset, :presets)
+    params.merge!(non_preset_params)
     params[:prompt] = result[:clean_text]
-    resolve_params(params)
+    final_params = resolve_params(params)
+
+    # For preset creation, we need to include derived parameters that should be saved
+    # 1. If aspect_ratio is provided, include width and height
+    if explicitly_provided_params.include?(:aspect_ratio)
+      explicitly_provided_params << :width << :height
+    end
+
+    # 2. If basesize is provided and model-specific default would set width/height, include them
+    if explicitly_provided_params.include?(:basesize) && final_params[:width] == final_params[:height]
+      # Only include width/height if they're equal (square aspect ratio from basesize)
+      explicitly_provided_params << :width << :height
+    end
+
+    # 3. Clean up any duplicates
+    explicitly_provided_params.uniq!
+
+    if for_preset
+      # Return both final params and info about which were explicitly provided
+      {
+        final_params: final_params,
+        explicitly_provided_params: explicitly_provided_params
+      }
+    else
+      # Return just the final params for backward compatibility
+      final_params
+    end
   end
 
   def resolve_params(params)
@@ -72,6 +172,9 @@ class PromptParameterParser
     params = {}
     clean_text = text.dup
 
+    # Extract direct preset names first (--<preset_name> syntax)
+    clean_text = extract_direct_preset_names(clean_text, params)
+
     PARAMS.each do |k, v|
       if (match = v[:match].match(clean_text))
         params[k] = match[1].send(v[:parse])
@@ -86,6 +189,29 @@ class PromptParameterParser
       parsed_params: params,
       clean_text: clean_text
     }
+  end
+
+  # Extract direct preset names from text (--<preset_name> syntax)
+  def extract_direct_preset_names(text, params)
+    clean_text = text.dup
+    # Look for --<word> patterns that match existing preset names
+    text.scan(/--(\w+)/) do |match|
+      preset_name = match[0]
+      # Check if this is a valid preset name (not a regular parameter)
+      unless PARAMS.key?(preset_name.to_sym) || PARAMS.any? { |_, v| v[:match].match?("--#{preset_name}") }
+        preset = Preset.find_by_name(preset_name)
+        if preset
+          # For backward compatibility with existing tests, only store the first preset in :preset
+          # and ignore subsequent ones (but still apply them for parameter merging)
+          unless params[:preset]
+            params[:preset] = preset_name
+          end
+          # Remove the direct preset reference from text
+          clean_text.gsub!("--#{preset_name}", "")
+        end
+      end
+    end
+    clean_text
   end
 
   def resolve_aspect_ratio(params)

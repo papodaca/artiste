@@ -51,13 +51,13 @@ EM.run do
     dispatch = Rack::Builder.app do
       if ENV["RACK_ENV"] == "development"
         use Rack::Static, urls: ["/photos"], root: File.join(File.dirname(__FILE__), "db"),
-          header_rules: [[:all, {'Cache-Control' => 'public, max-age=86400'}]]
+          header_rules: [[:all, {"Cache-Control" => "public, max-age=86400"}]]
       end
-      
+
       frontend_dist_path = File.join(File.dirname(__FILE__), "frontend", "dist")
       use Rack::Static, urls: ["/assets"], root: frontend_dist_path,
-        header_rules: [[:all, {'Cache-Control' => 'public, max-age=3600'}]]
-      
+        header_rules: [[:all, {"Cache-Control" => "public, max-age=3600"}]]
+
       map "/" do
         run web_app
       end
@@ -153,23 +153,23 @@ EM.run do
             if kind == :running
               debug_log("Starting image generation process for task ##{generation_task.id}")
               generation_task.mark_processing
-              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{DEBUG_MODE ? final_params.to_json : ""}")
+              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{final_params.to_json if DEBUG_MODE}")
             end
             if kind == :progress
               debug_log("Generation progress for task ##{generation_task.id}, #{progress.join(", ")}")
-              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map { |p| p.to_s + "%" }.join(", ")}.#{DEBUG_MODE ? final_params.to_json : ""}")
+              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map { |p| p.to_s + "%" }.join(", ")}.#{final_params.to_json if DEBUG_MODE}")
             end
           end
         else # Chutes or other clients
           # For Chutes, we'll simulate the progress callbacks since it doesn't have the same progress tracking
-          server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{DEBUG_MODE ? final_params.to_json : ""}")
+          server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{final_params.to_json if DEBUG_MODE}")
           generation_task.mark_processing
 
           result = image_generation_client.generate(final_params)
 
           # Simulate completion callback
           debug_log("Image generation completed successfully for task ##{generation_task.id}")
-          server_strategy.update(message, reply, "🎨 Image generation completed!#{DEBUG_MODE ? final_params.to_json : ""}")
+          server_strategy.update(message, reply, "🎨 Image generation completed!#{final_params.to_json if DEBUG_MODE}")
 
           # Format the result to match what the rest of the code expects
           # If the result doesn't already have a filename, generate one

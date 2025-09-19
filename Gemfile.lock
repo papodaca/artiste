@@ -36,6 +36,8 @@ GEM
     drb (2.2.3)
     event_emitter (0.2.6)
     eventmachine (1.2.7)
+    factory_bot (6.5.5)
+      activesupport (>= 6.1.0)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
     ffi (1.17.2-arm-linux-gnu)
@@ -219,6 +221,7 @@ DEPENDENCIES
   activesupport
   discordrb
   eventmachine
+  factory_bot
   httparty
   json
   mini_magick

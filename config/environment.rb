@@ -1,9 +1,10 @@
 require "bundler"
 Bundler.require
 
-loader = Zeitwerk::Loader.new
-loader.push_dir('lib')
-loader.push_dir('lib/commands')
-loader.setup
+Zeitwerk::Loader.new.tap do |loader|
+  loader.push_dir('lib')
+  loader.push_dir('lib/commands')
+  loader.setup
+end
 
 require_relative "database"

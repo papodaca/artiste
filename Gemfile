@@ -23,10 +23,11 @@ gem "websocket-eventmachine-server"
 gem "zeitwerk"
 
 group :development, :test do
+  gem "factory_bot"
   gem "pry"
+  gem "rack-test", require: "rack/test"
   gem "rake"
   gem "reline"
   gem "rspec"
-  gem "rack-test", require: "rack/test"
   gem "standard", require: false
 end
