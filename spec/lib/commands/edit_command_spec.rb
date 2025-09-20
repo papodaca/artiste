@@ -11,10 +11,13 @@ RSpec.describe EditCommand do
   let(:user_settings) { instance_double("UserSettings", username: "test_user", user_id: "test-user") }
   let(:image_generation_client) { instance_double("ChutesClient") }
 
+  let(:today_file_path) { "db/photos/2025/09/19" }
+
   before do
     allow(mattermost).to receive(:respond)
     allow(mattermost).to receive(:update)
     allow(ImageGenerationClient).to receive(:create).and_return(image_generation_client)
+    FileUtils.mkdir_p(today_file_path)
   end
 
   describe ".parse" do
@@ -231,7 +234,7 @@ RSpec.describe EditCommand do
         instance_double("GenerationTask",
           id: 123,
           output_filename: "chutes_1758256813.png",
-          file_path: "db/photos/2025/09/19",
+          file_path: today_file_path,
           completed_at: Time.now
         )
       }
