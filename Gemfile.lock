@@ -233,7 +233,7 @@ DEPENDENCIES
   httparty
   json
   mini_magick
-  open-uri (~> 0.5.0)
+  open-uri
   openai
   ostruct
   pry
