@@ -4,6 +4,7 @@ COMMANDS = {
   details: {match: %r{^/details\s+(.+)}, class: GetDetailsCommand},
   help: {match: "/help", class: HelpCommand},
   text: {match: %r{^/text\s+(.+)}, class: TextCommand},
+  edit: {match: %r{^/edit\s+(.+)}, class: EditCommand},
   create_preset: {match: %r{^/create_preset\s+(.+)}, class: CreatePresetCommand},
   list_presets: {match: %r{^/list_presets(?:\s|$)}, class: ListPresetsCommand},
   update_preset: {match: %r{^/update_preset\s+(.+)}, class: UpdatePresetCommand},

@@ -143,6 +143,7 @@ class GenerationTask < Sequel::Model(:generation_tasks)
     self.status = 'completed'
     self.completed_at = Time.now
     self.output_filename = output_filename if output_filename
+    self.comfyui_prompt_id = comfyui_prompt_id if comfyui_prompt_id.present?
     if self.started_at
       self.processing_time_seconds = (Time.now - self.started_at).to_f
     end

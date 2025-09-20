@@ -26,7 +26,8 @@ class PromptParameterParser
     negative_prompt: {match: %r{(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))}, clean: %r{(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))}, parse: :strip},
     preset: {match: %r{(?:--preset(?:=|\s+)|-P\s+)([\w,]+)}, clean: %r{(?:--preset(?:=|\s+)|-P\s+)[\w,]+}, parse: :to_s},
     private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?},
-    image: {match: %r{(?:--image(?:=|\s+)|-i\s+)(https?://[^\s]+)}, clean: %r{(?:--image(?:=|\s+)|-i\s+)https?://[^\s]+}, parse: :to_s}
+    image: {match: %r{(?:--image(?:=|\s+)|-i\s+)((?:https?://[^\s]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))}, clean: %r{(?:--image(?:=|\s+)|-i\s+)((?:https?://[^\s]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))}, parse: :to_s},
+    task_id: {match: %r{(?:--task(?:=|\s+)|-t\s+)(\d+)}, clean: %r{(?:--task(?:=|\s+)|-t\s+)\d+}, parse: :to_i}
   }
 
   def self.parse(*args)

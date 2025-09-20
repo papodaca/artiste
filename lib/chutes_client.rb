@@ -1,8 +1,10 @@
 require "fileutils"
+require "base64"
 
 MODEL_MAP = {
   "flux" => "FLUX.1-schnell",
-  "qwen-image" => "qwen-image"
+  "qwen-image" => "qwen-image",
+  "qwen-image-edit" => "qwen-image-edit"
 }
 
 class ChutesClient < ImageGenerationClient
@@ -75,17 +77,50 @@ class ChutesClient < ImageGenerationClient
     }
   end
 
+  # Generate image using qwen-image-edit model for image editing
+  def generate_qwen_image_edit(params, &block)
+    # Set default values for parameters
+    payload = {
+      "prompt" => params[:prompt] || "",
+      "negative_prompt" => params[:negative_prompt] || "",
+      "true_cfg_scale" => params[:shift] || 4.0,
+      "width" => params[:width] || 1024,
+      "height" => params[:height] || 1024,
+      "num_inference_steps" => params[:steps] || 50,
+      "seed" => params[:seed] || 1,
+      "image_b64" => params[:image_b64] || ""
+    }
+
+    block.call(:started, nil, nil) if block_given?
+
+    # Generate the image using the edit endpoint
+    result = http_client.generate_image_edit(payload)
+    image_data = result[:image_data]
+    prompt_id = result[:prompt_id]
+
+    png_data = convert_to_png(image_data)
+
+    block.call(:completed, prompt_id, nil) if block_given?
+
+    {
+      image_data: png_data,
+      prompt_id: prompt_id
+    }
+  end
+
   # Generic generate method that selects model based on params
   def generate(params, &block)
     model = params[:model] || "qwen-image"
 
     case model
-    when "qwen"
+    when "qwen", "qwen-image"
       generate_qwen_image(params, &block)
     when "flux"
       generate_flux_image(params, &block)
+    when "qwen-image-edit"
+      generate_qwen_image_edit(params, &block)
     else
-      raise "Unsupported model: #{model}. Supported models are: qwen-image, FLUX.1-schnell"
+      raise "Unsupported model: #{model}. Supported models are: qwen-image, FLUX.1-schnell, qwen-image-edit"
     end
   end
 

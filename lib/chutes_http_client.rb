@@ -27,4 +27,22 @@ class ChutesHttpClient
       raise "Failed to generate image: #{response.code} - #{response.body}"
     end
   end
+
+  # Generate image edit using Chutes API (different endpoint)
+  def generate_image_edit(payload)
+    # Use the specific edit endpoint from the curl example
+    response = self.class.post("https://chutes-qwen-image-edit.chutes.ai/generate",
+      body: payload.to_json,
+      timeout: 500
+    )
+
+    if response.success?
+      {
+        image_data: response.body,
+        prompt_id: response.headers["x-chutes-invocationid"]
+      }
+    else
+      raise "Failed to generate image edit: #{response.code} - #{response.body}"
+    end
+  end
 end
