@@ -30,7 +30,7 @@ class ListPresetsCommand < BaseCommand
 
       # Show example image if available
       if preset.example_image
-        response_parts << "  🖼️ Example: [#{preset.example_image}]()"
+        response_parts << "  🖼️ Example: [here](#{preset.example_image})"
       end
 
       response_parts << "" # Empty line between presets

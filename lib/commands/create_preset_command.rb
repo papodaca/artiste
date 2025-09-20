@@ -69,7 +69,7 @@ class CreatePresetCommand < BaseCommand
                 "⚙️ Parameters: #{parameters_to_save.inspect}"
       
       if example_image
-        response += "\n🖼️ Example image: [#{example_image}]()"
+        response += "\n🖼️ Example image: ![example](#{example_image})"
       end
       
       server.respond(message, response)
