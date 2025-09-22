@@ -1,12 +1,10 @@
 <script>
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
 
-  export let selectedPhoto;
-
-  const dispatch = createEventDispatcher();
-  let photoDetails = null;
-  let loading = false;
-  let error = null;
+  let { selectedPhoto, onclose } = $props();
+  let photoDetails = $state(null);
+  let loading = $state(false);
+  let error = $state(null);
 
   onMount(async () => {
     if (selectedPhoto) {
@@ -38,7 +36,7 @@
   }
 
   function close() {
-    dispatch("close");
+    onclose?.();
   }
 
   function getStatusClass(status) {
@@ -74,7 +72,7 @@
   <div
     class="absolute inset-0 bg-black/50 backdrop-blur-sm"
     aria-hidden="true"
-    on:click={close}
+    onclick={close}
   ></div>
   <div class="fixed inset-0 overflow-y-auto">
     <div class="flex min-h-full items-center justify-center p-4">
@@ -87,7 +85,7 @@
               Photo Details
             </h2>
             <button
-              on:click={close}
+              onclick={close}
               class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <svg

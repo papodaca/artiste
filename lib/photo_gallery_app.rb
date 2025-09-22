@@ -14,8 +14,9 @@ class PhotoGalleryApp < Sinatra::Base
   # Default batch size for infinite scrolling
   PHOTO_BATCH_SIZE = 20
 
-  def initialize(photos_path = File.join(settings.root, "..", "db", "photos"))
+  def initialize(photos_path = File.join(settings.root, "..", "db", "photos"), debug_mode = false)
     @photos_path = photos_path
+    @debug_mode = debug_mode
     super()
     # Only start WebSocket server if not in test environment
     start_websocket_server unless ENV["RACK_ENV"] == "test"
@@ -65,7 +66,14 @@ class PhotoGalleryApp < Sinatra::Base
 
   # Root route - serve Svelte frontend
   get "/" do
-    send_file File.join(settings.root, "..", "frontend", "dist", "index.html")
+    # Check if we're in debug mode (which includes --dev flag)
+    if @debug_mode
+      # In dev mode, redirect to the Vite dev server
+      redirect to("http://localhost:5173")
+    else
+      # In production mode, serve the built Svelte app
+      send_file File.join(settings.root, "..", "frontend", "dist", "index.html")
+    end
   end
 
   # API endpoint for infinite scroll - returns JSON list of photos

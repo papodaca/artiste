@@ -1,12 +1,8 @@
 <script>
-  import { createEventDispatcher } from "svelte";
-
-  export let photo;
-
-  const dispatch = createEventDispatcher();
+  let { photo, onshowDetails } = $props();
 
   function showDetails() {
-    dispatch("showDetails", photo);
+    onshowDetails?.(photo);
   }
 
   async function copyImageUrl(event, relativePath) {
@@ -51,7 +47,7 @@
 <div
   class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl fade-in relative"
 >
-  <div class="block no-underline cursor-pointer" on:click={showDetails}>
+  <div class="block no-underline cursor-pointer" onclick={showDetails}>
     <img
       src="/photos/{photo}"
       alt={getFilename(photo)}
@@ -70,7 +66,7 @@
     type="button"
     class="absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-md hover:shadow-lg transition-all duration-200 z-10"
     aria-label="Copy image URL to clipboard"
-    on:click={(event) => copyImageUrl(event, `/photos/${photo}`)}
+    onclick={(event) => copyImageUrl(event, `/photos/${photo}`)}
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"

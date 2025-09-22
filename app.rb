@@ -8,12 +8,16 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: app.rb [options]"
 
-  opts.on("-d", "--debug", "Enable debug mode") do |v|
+  opts.on("-g", "--debug", "Enable debug mode") do |v|
     options[:debug] = v
   end
 
   opts.on("-w", "--web", "Enable the web server") do |v|
     options[:web] = v
+  end
+
+  opts.on("-d", "--dev", "Enable development mode (debug + web server + yarn dev)") do |v|
+    options[:dev] = v
   end
 
   opts.on("-h", "--help", "Show this help message") do
@@ -23,10 +27,34 @@ OptionParser.new do |opts|
 end.parse!
 
 # Set debug flag globally
-DEBUG_MODE = (options[:debug] || false).freeze
+# Enable debug mode if --debug or --dev flag is used
+DEBUG_MODE = (options[:debug] || options[:dev] || false).freeze
+
+# Enable web server if --web or --dev flag is used
+options[:web] = true if options[:dev]
 
 def debug_log(message)
   puts "[DEBUG] #{Time.now.strftime("%Y-%m-%d %H:%M:%S")} - #{message}" if DEBUG_MODE
+end
+
+# Spawn yarn dev process if --dev flag is used
+yarn_dev_pid = nil
+if options[:dev]
+  frontend_dir = File.join(File.dirname(__FILE__), "frontend")
+  debug_log("Starting yarn dev in #{frontend_dir}")
+  
+  # Start yarn dev in a subprocess
+  yarn_dev_pid = Process.spawn("yarn dev", chdir: frontend_dir)
+  debug_log("Started yarn dev with PID #{yarn_dev_pid}")
+  
+  # Set up a trap to clean up the yarn dev process on exit
+  at_exit do
+    if yarn_dev_pid
+      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
+      Process.kill("TERM", yarn_dev_pid)
+      Process.wait(yarn_dev_pid)
+    end
+  end
 end
 
 EM.run do
@@ -46,7 +74,7 @@ EM.run do
 
   if options[:web].present?
     photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
-    web_app = PhotoGalleryApp.new(photos_dir)
+    web_app = PhotoGalleryApp.new(photos_dir, DEBUG_MODE)
 
     dispatch = Rack::Builder.app do
       if ENV["RACK_ENV"] == "development"
@@ -71,12 +99,26 @@ EM.run do
   image_generation_client = ImageGenerationClient.create
 
   Signal.trap("INT") do
-    server.stop
+    debug_log("Received INT signal, shutting down...")
+    # Terminate yarn dev process if it's running
+    if yarn_dev_pid
+      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
+      Process.kill("TERM", yarn_dev_pid)
+      Process.wait(yarn_dev_pid)
+    end
+    server.stop if defined?(server) && server
     EM.stop
   end
 
   Signal.trap("TERM") do
-    server.stop
+    debug_log("Received TERM signal, shutting down...")
+    # Terminate yarn dev process if it's running
+    if yarn_dev_pid
+      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
+      Process.kill("TERM", yarn_dev_pid)
+      Process.wait(yarn_dev_pid)
+    end
+    server.stop if defined?(server) && server
     EM.stop
   end
 

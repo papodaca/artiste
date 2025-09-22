@@ -3,15 +3,15 @@
   import PhotoItem from "./PhotoItem.svelte";
   import PhotoDetailsModal from "./PhotoDetailsModal.svelte";
 
-  let photos = [];
-  let loading = false;
-  let hasMore = true;
-  let offset = 0;
+  let photos = $state([]);
+  let loading = $state(false);
+  let hasMore = $state(true);
+  let offset = $state(0);
   const batchSize = 20;
-  let selectedPhoto = null;
-  let showModal = false;
-  let websocket = null;
-  let connectionStatus = "disconnected";
+  let selectedPhoto = $state(null);
+  let showModal = $state(false);
+  let websocket = $state(null);
+  let connectionStatus = $state("disconnected");
 
   // Fetch initial photos
   onMount(async () => {
@@ -70,8 +70,8 @@
   }
 
   // Show photo details in modal
-  function showPhotoDetails(event) {
-    selectedPhoto = event.detail;
+  function showPhotoDetails(photo) {
+    selectedPhoto = photo;
     showModal = true;
   }
 
@@ -212,7 +212,7 @@
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 infinite-scroll-container"
     >
       {#each photos as photo}
-        <PhotoItem {photo} on:showDetails={showPhotoDetails} />
+        <PhotoItem {photo} onshowDetails={showPhotoDetails} />
       {/each}
     </div>
 
@@ -233,7 +233,7 @@
 </div>
 
 {#if showModal}
-  <PhotoDetailsModal {selectedPhoto} on:close={closeModal} />
+  <PhotoDetailsModal {selectedPhoto} onclose={closeModal} />
 {/if}
 
 <style>
