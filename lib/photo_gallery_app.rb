@@ -3,6 +3,7 @@
 require "sinatra/base"
 require "pathname"
 require "base64"
+require_relative "openai_api"
 
 class PhotoGalleryApp < Sinatra::Base
   # Set up the web server
@@ -229,4 +230,7 @@ class PhotoGalleryApp < Sinatra::Base
       {error: "Internal server error"}.to_json
     end
   end
+
+  # Register the OpenAI API middleware
+  use OpenAIAPI
 end

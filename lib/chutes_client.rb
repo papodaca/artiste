@@ -40,10 +40,7 @@ class ChutesClient < ImageGenerationClient
 
     block.call(:completed, prompt_id, nil) if block_given?
 
-    {
-      image_data: png_data,
-      prompt_id: prompt_id
-    }
+    make_result(png_data, prompt_id)
   end
 
   # Generate image using FLUX.1-schnell model
@@ -71,10 +68,7 @@ class ChutesClient < ImageGenerationClient
 
     block.call(:completed, prompt_id, nil) if block_given?
 
-    {
-      image_data: png_data,
-      prompt_id: prompt_id
-    }
+    make_result(png_data, prompt_id)
   end
 
   # Generate image using qwen-image-edit model for image editing
@@ -102,10 +96,7 @@ class ChutesClient < ImageGenerationClient
 
     block.call(:completed, prompt_id, nil) if block_given?
 
-    {
-      image_data: png_data,
-      prompt_id: prompt_id
-    }
+    make_result(png_data, prompt_id)
   end
 
   # Generic generate method that selects model based on params
@@ -147,5 +138,11 @@ class ChutesClient < ImageGenerationClient
       temp_file.close
       temp_file.unlink
     end
+  end
+
+  def make_result(image_data, prompt_id)
+    {
+      image_data:, prompt_id:, filename: "chutes_#{Time.now.to_i}.png"
+    }
   end
 end

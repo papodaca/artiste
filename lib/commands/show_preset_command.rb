@@ -40,8 +40,6 @@ class ShowPresetCommand < BaseCommand
       "⚙️ **Parameters:**"
     ]
 
-
-
     # Add all parameters in a formatted way
     if params.any?
       params.each do |key, value|

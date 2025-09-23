@@ -42,11 +42,11 @@ yarn_dev_pid = nil
 if options[:dev]
   frontend_dir = File.join(File.dirname(__FILE__), "frontend")
   debug_log("Starting yarn dev in #{frontend_dir}")
-  
+
   # Start yarn dev in a subprocess
   yarn_dev_pid = Process.spawn("yarn dev", chdir: frontend_dir)
   debug_log("Started yarn dev with PID #{yarn_dev_pid}")
-  
+
   # Set up a trap to clean up the yarn dev process on exit
   at_exit do
     if yarn_dev_pid
@@ -212,10 +212,6 @@ EM.run do
           # Simulate completion callback
           debug_log("Image generation completed successfully for task ##{generation_task.id}")
           server_strategy.update(message, reply, "🎨 Image generation completed!#{final_params.to_json if DEBUG_MODE}")
-
-          # Format the result to match what the rest of the code expects
-          # If the result doesn't already have a filename, generate one
-          result[:filename] ||= "chutes_#{Time.now.to_i}.png"
         end
         debug_log("Image generation completed successfully for task ##{generation_task.id}")
 

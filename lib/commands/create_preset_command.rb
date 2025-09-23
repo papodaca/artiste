@@ -67,11 +67,11 @@ class CreatePresetCommand < BaseCommand
       response = "✅ Preset '#{preset_name}' created successfully!\n" \
                 "📝 Prompt: #{final_params[:prompt]}\n" \
                 "⚙️ Parameters: #{parameters_to_save.inspect}"
-      
+
       if example_image
         response += "\n🖼️ Example image: ![example](#{example_image})"
       end
-      
+
       server.respond(message, response)
     else
       debug_log("Failed to save preset: #{preset.errors.full_messages.join(", ")}")

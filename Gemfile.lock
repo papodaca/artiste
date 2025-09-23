@@ -23,7 +23,6 @@ GEM
     connection_pool (2.5.4)
     csv (3.3.5)
     daemons (1.4.1)
-    date (3.4.1)
     diff-lcs (1.6.2)
     discordrb (3.5.0)
       discordrb-webhooks (~> 3.5.0)
@@ -78,10 +77,6 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.3.0)
     netrc (0.11.0)
-    open-uri (0.5.0)
-      stringio
-      time
-      uri
     openai (0.23.3)
       connection_pool
     opus-ruby (1.0.1)
@@ -181,15 +176,12 @@ GEM
     standard-performance (1.8.0)
       lint_roller (~> 1.1)
       rubocop-performance (~> 1.25.0)
-    stringio (3.1.7)
     thin (2.0.1)
       daemons (~> 1.0, >= 1.0.9)
       eventmachine (~> 1.0, >= 1.0.4)
       logger
       rack (>= 1, < 4)
     tilt (2.6.1)
-    time (0.4.1)
-      date
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.2.0)
@@ -233,7 +225,6 @@ DEPENDENCIES
   httparty
   json
   mini_magick
-  open-uri
   openai
   ostruct
   pry

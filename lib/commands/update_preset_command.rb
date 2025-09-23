@@ -61,11 +61,11 @@ class UpdatePresetCommand < BaseCommand
       response = "✅ Preset '#{preset_name}' updated successfully!\n" \
                 "📝 New prompt: #{final_params[:prompt]}\n" \
                 "⚙️ New parameters: #{parameters_to_save.inspect}"
-      
+
       if example_image
         response += "\n🖼️ New example image: [#{example_image}]()"
       end
-      
+
       server.respond(message, response)
     else
       debug_log("Failed to update preset: #{existing_preset.errors.full_messages.join(", ")}")
