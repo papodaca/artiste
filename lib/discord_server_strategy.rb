@@ -1,3 +1,5 @@
+require "json"
+
 class DiscordServerStrategy < ServerStrategy
   def initialize(*args, **kwargs)
     @discord_token = kwargs[:discord_token]
@@ -87,6 +89,9 @@ class DiscordServerStrategy < ServerStrategy
       "user" => event.user
     }
 
+    # Download attached images if any
+    download_attached_images(message_data, event)
+
     # Check if bot is mentioned or if it's a DM or in allowed channels
     bot_mentioned = event.message.content.include?(@bot_user&.mention)
     is_dm = event.channel.pm?
@@ -105,5 +110,26 @@ class DiscordServerStrategy < ServerStrategy
     end
     mentions << @bot_user.id.to_s if content.include?(@bot_user&.mention)
     mentions
+  end
+
+  def download_attached_images(message_data, event)
+    return unless event.message.attachments.any?
+
+    # Initialize attached_files array in message_data if it doesn't exist
+    message_data["attached_files"] ||= []
+
+    # Collect URLs for each image attachment
+    event.message.attachments.each do |attachment|
+      next unless is_image_attachment?(attachment)
+
+      message_data["attached_files"] << attachment.url
+    end
+  end
+
+  private
+
+  def is_image_attachment?(attachment)
+    # Check if the attachment is an image based on content type
+    attachment.content_type&.start_with?("image/") || false
   end
 end

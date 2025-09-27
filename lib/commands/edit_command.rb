@@ -1,6 +1,8 @@
 require "open-uri"
 require "base64"
 require "httparty"
+require "tempfile"
+require "mini_magick"
 
 class EditCommand < BaseCommand
   def self.parse(prompt)
@@ -23,19 +25,23 @@ class EditCommand < BaseCommand
       return
     end
 
-    # Check if either image parameter or task_id parameter is provided
-    unless parsed_result[:image] || parsed_result[:task_id]
-      server.respond(message, "❌ Please provide either an image URL using --image <url>, a filename using --image <filename>, or a task ID using --task <id> parameter for editing.")
+    # Check if we have any image source (attached images, image parameter, or task_id)
+    has_attached_images = message["attached_files"]&.any?
+    has_image_param = parsed_result[:image].present?
+    has_task_id = parsed_result[:task_id].present?
+
+    unless has_attached_images || has_image_param || has_task_id
+      server.respond(message, "❌ Please provide either an image URL using --image <url>, a filename using --image <filename>, a task ID using --task <id> parameter, or attach an image to your message for editing.")
       return
     end
 
-    # Validate that we don't have both image and task_id parameters
-    if parsed_result[:image] && parsed_result[:task_id]
-      server.respond(message, "❌ Please provide either an image (URL or filename) or a task ID, but not both.")
+    # Validate that we don't have both image and task_id parameters (attached images can be combined with either)
+    if has_image_param && has_task_id
+      server.respond(message, "❌ Please provide either an image (URL or filename) or a task ID, but not both. Attached images can be used with either option.")
       return
     end
 
-    image_param = parsed_result[:image]
+    image_params = Array(parsed_result[:image])
     task_id = parsed_result[:task_id]
     prompt = parsed_result[:prompt]
 
@@ -44,35 +50,62 @@ class EditCommand < BaseCommand
       return
     end
 
-    debug_log("Editing image #{image_param || "from task " + task_id.to_s} with prompt: #{prompt}")
+    image_sources = []
+    image_sources << "attached images" if message["attached_files"]&.any?
+    image_sources << image_params.join(", ") if image_params.any?
+    image_sources << "from task " + task_id.to_s if task_id
+
+    debug_log("Editing #{image_sources.join(" and ")} with prompt: #{prompt}")
 
     begin
       # Create generation task at the beginning
       generation_task = create_generation_task
 
       # Send initial response
-      initial_response = "🖼️ Editing your image..."
+      total_images = (message["attached_files"]&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
+      initial_response = "🖼️ Editing your image#{"s" if total_images > 1}..."
       reply = server.respond(message, initial_response)
 
-      # Get image data either from URL, filename, or from task record
-      if image_param
-        if image_param.start_with?("http://", "https://")
-          # It's a URL
-          image_data = download_image(image_param)
-        else
-          # It's a filename, look up the task and load the image
-          task = find_task_by_filename(image_param)
-          image_data = load_image_from_task(task.id)
+      # Get image data either from URLs, filenames, attached images, or from task record
+      base64_images = []
+
+      # Process attached images first (from message attachments)
+      if message["attached_files"]&.any?
+        message["attached_files"].each do |attached_file|
+          if attached_file.start_with?("http://", "https://")
+            # It's a URL (Discord attachments)
+            image_data = download_image(attached_file)
+          elsif attached_file.start_with?("file://")
+            # It's a local file path (Mattermost attachments)
+            file_path = attached_file.sub("file://", "")
+            image_data = File.binread(file_path)
+            image_data = validate_and_convert_image(image_data, "attached file")
+          end
+          base64_images << Base64.strict_encode64(image_data)
+        end
+      end
+
+      # Process explicitly provided image parameters
+      if image_params.any?
+        image_params.each do |image_param|
+          if image_param.start_with?("http://", "https://")
+            # It's a URL
+            image_data = download_image(image_param)
+          else
+            # It's a filename, look up the task and load the image
+            task = find_task_by_filename(image_param)
+            image_data = load_image_from_task(task.id)
+          end
+          base64_images << Base64.strict_encode64(image_data)
         end
       elsif task_id
         image_data = load_image_from_task(task_id)
+        base64_images << Base64.strict_encode64(image_data)
       end
-
-      base64_image = Base64.strict_encode64(image_data)
 
       # Generate the edited image
       client = ImageGenerationClient.create
-      params = parsed_result.merge(image_b64: base64_image)
+      params = parsed_result.merge(image_b64s: base64_images)
 
       result = client.generate(params) do |status, prompt_id, error|
         case status
@@ -140,6 +173,59 @@ class EditCommand < BaseCommand
 
   private
 
+  def validate_and_convert_image(image_data, source_description = "image")
+    # Validate it's actually an image using MiniMagick
+    begin
+      # Create a temporary file to validate the image
+      temp_image = Tempfile.new(["image_validation", ".bin"])
+      temp_image.binmode
+      temp_image.write(image_data)
+      temp_image.close
+
+      # Use MiniMagick to validate the image
+      image = MiniMagick::Image.open(temp_image.path)
+      image.validate! # This will raise an error if the file is not a valid image
+    rescue MiniMagick::Error, MiniMagick::Invalid => e
+      raise "#{source_description} doesn't appear to be a valid image: #{e.message}"
+    ensure
+      # Clean up the temporary file
+      temp_image&.unlink
+    end
+
+    # Convert to PNG if it's not already in PNG format
+    unless image_data[0..10].include?("PNG")
+      debug_log("Converting #{source_description} to PNG format")
+
+      # Create a temporary file for the original image
+      temp_input = Tempfile.new(["original_image", ".bin"])
+      temp_input.binmode
+      temp_input.write(image_data)
+      temp_input.close
+
+      # Create a temporary file for the PNG output
+      temp_output = Tempfile.new(["converted_image", ".png"])
+      temp_output.close
+
+      begin
+        # Use ImageMagick to convert to PNG
+        convert_result = system("magick convert \"#{temp_input.path}\" \"#{temp_output.path}\"")
+        unless convert_result
+          raise "Failed to convert #{source_description} to PNG using ImageMagick"
+        end
+
+        # Read the converted PNG data
+        image_data = File.binread(temp_output.path)
+        debug_log("Successfully converted #{source_description} to PNG")
+      ensure
+        # Clean up temporary files
+        temp_input.unlink
+        temp_output.unlink
+      end
+    end
+
+    image_data
+  end
+
   def download_image(url)
     debug_log("Downloading image from: #{url}")
 
@@ -158,12 +244,8 @@ class EditCommand < BaseCommand
 
     image_data = response.body
 
-    # Validate it's actually an image
-    unless image_data[0..10].include?("PNG") || image_data[0..10].include?("JFIF") || image_data[0..10].include?("Exif")
-      raise "Downloaded file doesn't appear to be a valid image (PNG/JPEG)"
-    end
-
-    image_data
+    # Validate and convert the image
+    validate_and_convert_image(image_data, "downloaded file")
   rescue SocketError, Timeout::Error => e
     raise "Failed to download image: Network error #{e.message}"
   rescue HTTParty::Error, HTTParty::ResponseError => e
@@ -224,10 +306,8 @@ class EditCommand < BaseCommand
     # Read the image data
     image_data = File.binread(image_path)
 
-    # Validate it's actually an image
-    unless image_data[0..10].include?("PNG") || image_data[0..10].include?("JFIF") || image_data[0..10].include?("Exif")
-      raise "File doesn't appear to be a valid image (PNG/JPEG)"
-    end
+    # Validate and convert the image
+    image_data = validate_and_convert_image(image_data, "file")
 
     debug_log("Successfully loaded image from task #{task_id}: #{image_path}")
     image_data

@@ -30,4 +30,5 @@ group :development, :test do
   gem "reline"
   gem "rspec"
   gem "standard", require: false
+  gem "timecop"
 end

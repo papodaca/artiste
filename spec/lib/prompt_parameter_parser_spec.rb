@@ -399,6 +399,122 @@ RSpec.describe PromptParameterParser do
     end
   end
 
+  describe "#extract_parameters" do
+    context "with image parameter" do
+      it "extracts single image parameter" do
+        parser = described_class.new
+        text = "test prompt --image chutes_01.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts single image parameter with short flag" do
+        parser = described_class.new
+        text = "test prompt -i chutes_01.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts single URL image parameter" do
+        parser = described_class.new
+        text = "test prompt --image http://example.com/image1.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["http://example.com/image1.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts comma-separated image parameters" do
+        parser = described_class.new
+        text = "test prompt --image chutes_01.png,chutes_02.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png", "chutes_02.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts comma-separated URL image parameters" do
+        parser = described_class.new
+        text = "test prompt --image http://example.com/image1.png,http://example.com/image2.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["http://example.com/image1.png", "http://example.com/image2.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts mixed comma-separated image parameters" do
+        parser = described_class.new
+        text = "test prompt --image http://example.com/image1.png,chutes_02.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["http://example.com/image1.png", "chutes_02.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts multiple image parameters with separate flags" do
+        parser = described_class.new
+        text = "test prompt -i chutes_01.png -i chutes_02.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png", "chutes_02.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts multiple URL image parameters with separate flags" do
+        parser = described_class.new
+        text = "test prompt -i http://example.com/image1.png -i http://example.com/image2.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["http://example.com/image1.png", "http://example.com/image2.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts mixed image parameters with separate flags" do
+        parser = described_class.new
+        text = "test prompt -i http://example.com/image1.png -i chutes_02.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["http://example.com/image1.png", "chutes_02.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts mixed comma-separated and separate image parameters" do
+        parser = described_class.new
+        text = "test prompt -i chutes_01.png,chutes_02.png -i http://example.com/image1.png"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png", "chutes_02.png", "http://example.com/image1.png"])
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts image parameter with other parameters" do
+        parser = described_class.new
+        text = "test prompt --image chutes_01.png --width 512 --steps 20"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png"])
+        expect(result[:parsed_params][:width]).to eq(512)
+        expect(result[:parsed_params][:steps]).to eq(20)
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+
+      it "extracts multiple image parameters with other parameters" do
+        parser = described_class.new
+        text = "test prompt -i chutes_01.png -i chutes_02.png --width 512 --steps 20"
+        result = parser.send(:extract_parameters, text)
+
+        expect(result[:parsed_params][:image]).to eq(["chutes_01.png", "chutes_02.png"])
+        expect(result[:parsed_params][:width]).to eq(512)
+        expect(result[:parsed_params][:steps]).to eq(20)
+        expect(result[:clean_text]).to eq("test prompt")
+      end
+    end
+  end
+
   describe "#resolve_aspect_ratio" do
     it "resolves standard aspect ratios" do
       parser = described_class.new

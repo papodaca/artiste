@@ -1,4 +1,10 @@
 class PromptParameterParser
+  # Add split_comma method to String class for parsing comma-separated values
+  class ::String
+    def split_comma
+      split(/\s*,\s*/).map(&:strip)
+    end
+  end
   DEFAULT_CONFIGS = {
     flux: {
       width: 1024,
@@ -26,7 +32,7 @@ class PromptParameterParser
     negative_prompt: {match: %r{(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))}, clean: %r{(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))}, parse: :strip},
     preset: {match: %r{(?:--preset(?:=|\s+)|-P\s+)([\w,]+)}, clean: %r{(?:--preset(?:=|\s+)|-P\s+)[\w,]+}, parse: :to_s},
     private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?},
-    image: {match: %r{(?:--image(?:=|\s+)|-i\s+)((?:https?://[^\s]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))}, clean: %r{(?:--image(?:=|\s+)|-i\s+)((?:https?://[^\s]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))}, parse: :to_s},
+    image: {match: %r{(?:--image(?:=|\s+)|-i\s*)((?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))(?:\s*,\s*(?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp))))*)}, clean: %r{--image(?:=[^\s]*|\s+[^\s]+)|-i\s+[^\s,]+(?:\s*,\s*[^\s,]+)*}, parse: :split_comma},
     task_id: {match: %r{(?:--task(?:=|\s+)|-t\s+)(\d+)}, clean: %r{(?:--task(?:=|\s+)|-t\s+)\d+}, parse: :to_i}
   }
 
@@ -177,7 +183,20 @@ class PromptParameterParser
     clean_text = extract_direct_preset_names(clean_text, params)
 
     PARAMS.each do |k, v|
-      if (match = v[:match].match(clean_text))
+      # Special handling for image parameter to support multiple -i flags
+      if k == :image
+        images = []
+        while (match = v[:match].match(clean_text))
+          image_value = match[1].send(v[:parse])
+          if image_value.is_a?(Array)
+            images.concat(image_value)
+          else
+            images << image_value
+          end
+          clean_text.sub!(match[0], "")
+        end
+        params[k] = images if images.any?
+      elsif (match = v[:match].match(clean_text))
         params[k] = match[1].send(v[:parse])
         clean_text.gsub!(v[:clean], "")
       end

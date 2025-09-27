@@ -1,5 +1,5 @@
 volumes
-db/artiste.db
 .env
 frontend/dist
 frontend/node_modules
+db/*

@@ -36,6 +36,28 @@ class HelpCommand < BaseCommand
           --temperature|-t <temp> Set temperature (default: 0.7)
           --no-system             Disable Artiste's system prompt
       
+      /edit <prompt> [options] - Edit an image based on your prompt
+        Options:
+          --image|-i <url|filename> Specify image URL or filename to edit
+          --task|-t <id>            Specify task ID of previously generated image to edit
+          --ar|-a <ratio>           Set aspect ratio (e.g., 3:2, 16:9, 1:1)
+          --basesize|-b <pixels>    Set base size for aspect ratio calculations
+          --height|-h <pixels>      Set image height
+          --preset|-P <name>        Apply preset parameters and append preset prompt
+          --<preset_name>           Apply preset directly by name (e.g., --vibrant_colors)
+          --private|-p              Generate images that are not publicly shared
+          --shift|-S <number>       Set shift parameter (for qwen model)
+          --steps|-s <number>       Set number of generation steps, more steps more better
+          --width|-w <pixels>      Set image width
+        
+        You can provide images in multiple ways:
+          - Attach images directly to your message
+          - Use --image with a URL (e.g., --image https://example.com/image.png)
+          - Use --image with a filename, for previous gen (e.g., --image output_20241230_123456.png)
+          - Use --task with a task ID (e.g., --task 12345)
+        
+        Example: /edit make this image more vibrant --image output_20241230_123456.png --steps 20
+      
       /help - Show this help message
       
       Preset management commands:

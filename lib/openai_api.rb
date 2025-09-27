@@ -10,10 +10,10 @@ class OpenAIAPI < Sinatra::Base
   # OpenAI-compatible API endpoint for image generation
   post "/images/generations" do
     content_type :json
-    
+
     # Check for Authorization header
     auth_header = request.env["HTTP_AUTHORIZATION"]
-    unless auth_header && auth_header.start_with?("Bearer ")
+    unless auth_header&.start_with?("Bearer ")
       status 401
       return {error: "Authentication required. Please provide a valid Bearer token."}.to_json
     end
@@ -21,12 +21,12 @@ class OpenAIAPI < Sinatra::Base
     # Extract and validate token
     token = auth_header.sub(/^Bearer /, "").strip
     api_token = ENV["API_TOKEN"]
-    
+
     unless api_token
       status 500
       return {error: "API_TOKEN environment variable is not configured on the server."}.to_json
     end
-    
+
     unless token == api_token
       status 401
       return {error: "Invalid authentication token."}.to_json
@@ -35,6 +35,11 @@ class OpenAIAPI < Sinatra::Base
     begin
       # Parse the JSON request body
       request_body = JSON.parse(request.body.read)
+
+      if request_body["stream"].is_a?(TrueClass)
+        status 400
+        return {error: "Streaming is not supported"}.to_json
+      end
 
       # Validate required parameters
       unless request_body["prompt"]
@@ -67,7 +72,7 @@ class OpenAIAPI < Sinatra::Base
       params = {
         width:, height:,
         model: internal_model,
-        steps: internal_model == "flux" ? 2 : 20,  # Default steps based on model
+        steps: (internal_model == "flux") ? 2 : 20,  # Default steps based on model
         seed: rand(1000000000)
       }
 
@@ -95,9 +100,7 @@ class OpenAIAPI < Sinatra::Base
 
       # Save the image file
       image_path = "#{generation_task.file_path}/#{generation_task.output_filename}"
-      File.open(image_path, "wb") do |file|
-        file.write(result[:image_data])
-      end
+      File.binwrite(image_path, result[:image_data])
 
       # Add EXIF data
       Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{image_path} > /dev/null 2>&1")
@@ -113,7 +116,7 @@ class OpenAIAPI < Sinatra::Base
             exif_data.delete(k)
           end
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError
         # Ignore EXIF parsing errors
       end
 
@@ -134,12 +137,12 @@ class OpenAIAPI < Sinatra::Base
 
       # Encode the image data as base64
       base64_image = Base64.strict_encode64(File.read(image_path, mode: "rb"))
-      
+
       # Calculate token usage (approximate)
       prompt_tokens = (prompt.length / 4.0).ceil  # Rough estimate
       image_tokens = (width * height / 1000.0).ceil  # Rough estimate based on image size
       total_tokens = prompt_tokens + image_tokens
-      
+
       # Return OpenAI-compatible response
       {
         created: Time.now.to_i,
@@ -158,7 +161,6 @@ class OpenAIAPI < Sinatra::Base
           }
         }
       }.to_json
-
     rescue JSON::ParserError
       status 400
       {error: "Invalid JSON in request body"}.to_json
@@ -177,16 +179,16 @@ class OpenAIAPI < Sinatra::Base
   # Helper method to parse size parameter
   def parse_size_parameter(size)
     return nil unless size.is_a?(String)
-    
+
     match = size.match(/^(\d+)x(\d+)$/)
     return nil unless match
-    
+
     width = match[1].to_i
     height = match[2].to_i
-    
+
     # Validate size is within reasonable bounds
     return nil if width < 256 || width > 2048 || height < 256 || height > 2048
-    
+
     [width, height]
   end
 

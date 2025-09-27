@@ -16,3 +16,7 @@ end
 task :standard_fix do
   sh "bundle exec standardrb ./lib/**/*.rb ./spec/**/*.rb app.rb Gemfile Rakefile --fix"
 end
+
+task :check do
+  sh "rake spec; rake standard"
+end

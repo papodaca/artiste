@@ -75,14 +75,14 @@ class ChutesClient < ImageGenerationClient
   def generate_qwen_image_edit(params, &block)
     # Set default values for parameters
     payload = {
-      "prompt" => params[:prompt] || "",
-      "negative_prompt" => params[:negative_prompt] || "",
-      "true_cfg_scale" => params[:shift] || 4.0,
+      "seed" => params[:seed] || rand(1000000000),
       "width" => params[:width] || 1024,
       "height" => params[:height] || 1024,
-      "num_inference_steps" => params[:steps] || 50,
-      "seed" => params[:seed] || 1,
-      "image_b64" => params[:image_b64] || ""
+      "prompt" => params[:prompt] || "",
+      "image_b64s" => params[:image_b64s] || [""],
+      "true_cfg_scale" => params[:shift] || 4,
+      "negative_prompt" => params[:negative_prompt] || "",
+      "num_inference_steps" => params[:steps] || 40
     }
 
     block.call(:started, nil, nil) if block_given?

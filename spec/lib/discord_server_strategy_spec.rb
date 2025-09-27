@@ -176,6 +176,7 @@ RSpec.describe DiscordServerStrategy do
       allow(event_double).to receive(:message).and_return(message_double)
       allow(message_double).to receive(:content).and_return("Hello <@98765>")
       allow(message_double).to receive(:id).and_return("message-456")
+      allow(message_double).to receive(:attachments).and_return([]) # Add this line
       allow(event_double).to receive(:channel).and_return(channel_double)
       allow(channel_double).to receive(:pm?).and_return(false)
       allow(channel_double).to receive(:id).and_return(123456789)
@@ -208,6 +209,7 @@ RSpec.describe DiscordServerStrategy do
       allow(event_double).to receive(:message).and_return(message_double)
       allow(message_double).to receive(:content).and_return("Hello")
       allow(message_double).to receive(:id).and_return("message-456")
+      allow(message_double).to receive(:attachments).and_return([]) # Add this line
       allow(event_double).to receive(:channel).and_return(channel_double)
       allow(channel_double).to receive(:pm?).and_return(true)
       allow(channel_double).to receive(:id).and_return(123456789)
@@ -229,6 +231,7 @@ RSpec.describe DiscordServerStrategy do
       allow(event_double).to receive(:message).and_return(message_double)
       allow(message_double).to receive(:content).and_return("Hello")
       allow(message_double).to receive(:id).and_return("message-456")
+      allow(message_double).to receive(:attachments).and_return([]) # Add this line
       allow(event_double).to receive(:channel).and_return(channel_double)
       allow(channel_double).to receive(:pm?).and_return(false)
       allow(channel_double).to receive(:id).and_return(123456789)
@@ -253,6 +256,7 @@ RSpec.describe DiscordServerStrategy do
       allow(event_double).to receive(:message).and_return(message_double)
       allow(message_double).to receive(:content).and_return("Hello")
       allow(message_double).to receive(:id).and_return("message-456")
+      allow(message_double).to receive(:attachments).and_return([]) # Add this line
       allow(event_double).to receive(:channel).and_return(channel_double)
       allow(channel_double).to receive(:pm?).and_return(false)
       allow(channel_double).to receive(:id).and_return(999999999) # Different channel
@@ -325,6 +329,78 @@ RSpec.describe DiscordServerStrategy do
       expect(mentions).to include("98765")
       # The implementation includes duplicates, so we should check for unique values
       expect(mentions.uniq).to contain_exactly("12345", "67890", "98765")
+    end
+  end
+
+  describe "#download_attached_images" do
+    let(:strategy) { described_class.new(**options) }
+    let(:message_data) { {"event" => "posted"} }
+    let(:event_double) { instance_double(Discordrb::Events::MessageEvent) }
+    let(:message_double) { instance_double(Discordrb::Message) }
+    let(:attachment_double) { instance_double(Discordrb::Attachment) }
+    let(:image_attachment_double) { instance_double(Discordrb::Attachment) }
+
+    before do
+      allow(event_double).to receive(:message).and_return(message_double)
+      allow(strategy).to receive(:is_image_attachment?)
+    end
+
+    context "when message has no attachments" do
+      before do
+        allow(message_double).to receive(:attachments).and_return([])
+      end
+
+      it "does not process any attachments" do
+        strategy.send(:download_attached_images, message_data, event_double)
+        expect(strategy).not_to have_received(:is_image_attachment?)
+        expect(message_data["attached_files"]).to be_nil
+      end
+    end
+
+    context "when message has attachments" do
+      before do
+        allow(message_double).to receive(:attachments).and_return([attachment_double, image_attachment_double])
+        allow(strategy).to receive(:is_image_attachment?).with(attachment_double).and_return(false)
+        allow(strategy).to receive(:is_image_attachment?).with(image_attachment_double).and_return(true)
+        allow(image_attachment_double).to receive(:url).and_return("https://example.com/image.png")
+        allow(image_attachment_double).to receive(:filename).and_return("test.png")
+      end
+
+      it "collects URLs for only image attachments" do
+        strategy.send(:download_attached_images, message_data, event_double)
+        expect(strategy).to have_received(:is_image_attachment?).with(attachment_double)
+        expect(strategy).to have_received(:is_image_attachment?).with(image_attachment_double)
+        expect(message_data["attached_files"]).to eq(["https://example.com/image.png"])
+      end
+    end
+  end
+
+  describe "#is_image_attachment?" do
+    let(:strategy) { described_class.new(**options) }
+    let(:attachment_double) { instance_double(Discordrb::Attachment) }
+
+    it "returns true for image content types" do
+      allow(attachment_double).to receive(:content_type).and_return("image/png")
+      result = strategy.send(:is_image_attachment?, attachment_double)
+      expect(result).to be true
+    end
+
+    it "returns true for other image content types" do
+      allow(attachment_double).to receive(:content_type).and_return("image/jpeg")
+      result = strategy.send(:is_image_attachment?, attachment_double)
+      expect(result).to be true
+    end
+
+    it "returns false for non-image content types" do
+      allow(attachment_double).to receive(:content_type).and_return("application/pdf")
+      result = strategy.send(:is_image_attachment?, attachment_double)
+      expect(result).to be false
+    end
+
+    it "returns false when content_type is nil" do
+      allow(attachment_double).to receive(:content_type).and_return(nil)
+      result = strategy.send(:is_image_attachment?, attachment_double)
+      expect(result).to be false
     end
   end
 end

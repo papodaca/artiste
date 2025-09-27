@@ -1,3 +1,6 @@
+require "fileutils"
+require "json"
+
 class MattermostServerStrategy < ServerStrategy
   def initialize(*args, **kwargs)
     @mattermost_url = kwargs[:mattermost_url]
@@ -47,6 +50,8 @@ class MattermostServerStrategy < ServerStrategy
         msg_data["message"] = msg_data.dig("data", "post", "message")
 
         if mentions.include?(@mattermost_bot_id) && ((msg_data.dig("data", "channel_type") == "D" && msg_data["message"].include?("@#{@mattermost_bot_name}")) || @mattermost_channels.include?(msg_data.dig("data", "post", "channel_id")))
+          # Download attached images if any
+          download_attached_images(msg_data)
           yield msg_data
         end
       end
@@ -119,5 +124,47 @@ class MattermostServerStrategy < ServerStrategy
       body: multipart_data
     )
     new_files["file_infos"].map { |f| f["id"] }
+  end
+
+  def download_attached_images(msg_data)
+    files = msg_data.dig("data", "post", "metadata", "files")
+    return if files&.empty?
+
+    msg_data["attached_files"] ||= []
+    files.each do |file|
+      next unless file["mime_type"].start_with?("image/")
+
+      file_data = download_file(file["id"])
+      file_path = save_downloaded_file(file_data, file["name"])
+
+      msg_data["attached_files"] << "file://#{file_path}"
+    rescue
+      next
+    end
+  end
+
+  private
+
+  def download_file(file_id)
+    response = @client.get("/files/#{file_id}", headers: {"Accept" => "application/octet-stream"})
+
+    response.body
+  end
+
+  def save_downloaded_file(file_data, filename)
+    # Create tmp directory if it doesn't exist
+    tmp_dir = "db/tmp"
+    FileUtils.mkdir_p(tmp_dir) unless Dir.exist?(tmp_dir)
+
+    # Generate unique filename to avoid conflicts
+    base_name = File.basename(filename, ".*")
+    extension = File.extname(filename)
+    unique_filename = "#{base_name}_#{Time.now.to_i}#{extension}"
+    file_path = File.join(tmp_dir, unique_filename)
+
+    # Write the file
+    File.binwrite(file_path, file_data)
+
+    file_path
   end
 end

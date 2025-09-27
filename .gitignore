@@ -1,4 +1,3 @@
 .env
 volumes
-db/*.db
-db/photos/**/*.png
+db
