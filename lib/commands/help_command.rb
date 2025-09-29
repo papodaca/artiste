@@ -17,11 +17,15 @@ class HelpCommand < BaseCommand
       
       Available commands:
       
+      /generate <prompt> [options] - Generate an image based on your prompt
+        Options (same parameters as image generation)
+        Example: /generate a beautiful sunset --ar 16:9 --steps 20 --private
+      
       /set_settings [options] - Set default settings for image generation
         Options (same parameters as image generation):
           --delete|-d <key>      Delete a setting (e.g., --delete aspect_ratio)
         
-        Examples: 
+        Examples:
           /set_settings --ar 3:2 --steps 30
           /set_settings --delete aspect_ratio
       

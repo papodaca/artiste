@@ -44,4 +44,20 @@ class ChutesHttpClient
       raise "Failed to generate image edit: #{response.code} - #{response.body}"
     end
   end
+
+  # Generate video using Chutes API
+  def generate_video(payload)
+    response = self.class.post("https://chutes-wan2-1-14b.chutes.ai/text2video",
+      body: payload.to_json,
+      timeout: 1000 * 1000)
+
+    if response.success?
+      {
+        video_data: response.body,
+        prompt_id: response.headers["x-chutes-invocationid"]
+      }
+    else
+      raise "Failed to generate video: #{response.code} - #{response.body}"
+    end
+  end
 end

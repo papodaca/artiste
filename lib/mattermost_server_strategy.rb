@@ -128,7 +128,7 @@ class MattermostServerStrategy < ServerStrategy
 
   def download_attached_images(msg_data)
     files = msg_data.dig("data", "post", "metadata", "files")
-    return if files&.empty?
+    return if files.nil? || files&.empty?
 
     msg_data["attached_files"] ||= []
     files.each do |file|

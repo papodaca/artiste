@@ -325,6 +325,7 @@ class EditCommand < BaseCommand
       username: user_settings.username,
       status: "pending",
       prompt: parsed_result[:prompt],
+      private: parsed_result.has_key?(:private),
       parameters: parsed_result.except(:prompt, :image, :image_b64, :task_id).to_json,
       workflow_type: "qwen-image-edit",
       queued_at: Time.now

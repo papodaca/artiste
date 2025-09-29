@@ -96,7 +96,6 @@ EM.run do
   end
 
   server_strategy = ServerStrategy.create
-  image_generation_client = ImageGenerationClient.create
 
   Signal.trap("INT") do
     debug_log("Received INT signal, shutting down...")
@@ -154,136 +153,14 @@ EM.run do
     parsed_params = PromptParameterParser.parse(full_prompt, user_settings.parsed_prompt_params[:model])
     debug_log("Parsed parameters: #{parsed_params.inspect}")
 
-    # Handle commands
-    if parsed_params.has_key?(:type)
-      debug_log("Handling command of type: #{parsed_params[:type]}")
+    unless parsed_params.has_key?(:type)
+      parsed_params[:type] = :generate
+      debug_log("Assuming command is generate")
+    end
+
+    debug_log("Handling command of type: #{parsed_params[:type]}")
+    EM.defer do
       CommandDispatcher.execute(server_strategy, message, parsed_params, user_settings, DEBUG_MODE)
-    else
-      debug_log("Handling image generation request")
-      # Handle regular image generation
-      reply = server_strategy.respond(message, "🎨 Image generation queued...")
-
-      # Create generation task record
-      user_params = user_settings.parsed_prompt_params
-      final_params = PromptParameterParser.resolve_params(parsed_params.merge(user_params))
-
-      generation_task = GenerationTask.create(
-        user_id: user_id,
-        username: username,
-        prompt: full_prompt,
-        parameters: final_params.to_json,
-        workflow_type: final_params[:model] || "flux",
-        status: "pending",
-        private: final_params.has_key?(:private)
-      )
-      debug_log("Created generation task ##{generation_task.id}")
-
-      EM.defer do
-        debug_log("Queued image generation process for task ##{generation_task.id}")
-
-        debug_log("User settings: #{user_params.inspect}")
-        debug_log("Final parameters for generation: #{final_params.inspect}")
-
-        # Generate image using the appropriate client
-        if image_generation_client.is_a?(ComfyuiClient)
-          result = image_generation_client.generate_and_wait(final_params, 1.hour.seconds.to_i) do |kind, comfyui_prompt_id, progress|
-            if comfyui_prompt_id.present? && comfyui_prompt_id != generation_task.comfyui_prompt_id
-              debug_log("Setting the generation task's comfyui_prompt_id to #{comfyui_prompt_id}")
-              generation_task.comfyui_prompt_id = comfyui_prompt_id
-              generation_task.save
-            end
-            if kind == :running
-              debug_log("Starting image generation process for task ##{generation_task.id}")
-              generation_task.mark_processing
-              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{final_params.to_json if DEBUG_MODE}")
-            end
-            if kind == :progress
-              debug_log("Generation progress for task ##{generation_task.id}, #{progress.join(", ")}")
-              server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes. progressing: #{progress.map { |p| p.to_s + "%" }.join(", ")}.#{final_params.to_json if DEBUG_MODE}")
-            end
-          end
-        else # Chutes or other clients
-          # For Chutes, we'll simulate the progress callbacks since it doesn't have the same progress tracking
-          server_strategy.update(message, reply, "🎨 Generating image... This may take a few minutes.#{final_params.to_json if DEBUG_MODE}")
-          generation_task.mark_processing
-
-          result = image_generation_client.generate(final_params)
-
-          # Simulate completion callback
-          debug_log("Image generation completed successfully for task ##{generation_task.id}")
-          server_strategy.update(message, reply, "🎨 Image generation completed!#{final_params.to_json if DEBUG_MODE}")
-        end
-        debug_log("Image generation completed successfully for task ##{generation_task.id}")
-
-        filename = result[:filename]
-        generation_task.mark_completed(filename)
-        target_dir = generation_task.file_path
-        filepath = File.join(target_dir, filename)
-        File.write(filepath, result[:image_data])
-
-        # Get photo path for WebSocket notification (relative path without db/photos prefix)
-        photo_relative_path = target_dir.gsub(/^db\/photos\//, "")
-        photo_relative_path = File.join(photo_relative_path, filename)
-
-        # Notify WebSocket clients about new photo
-        if defined?(PhotoGalleryWebSocket)
-          task_data = {
-            output_filename: generation_task.output_filename,
-            username: generation_task.username,
-            workflow_type: generation_task.workflow_type,
-            completed_at: generation_task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
-            prompt: generation_task.prompt
-          }
-          PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, task_data)
-        end
-
-        if generation_task.comfyui_prompt_id.nil? && result.has_key?(:prompt_id)
-          generation_task.comfyui_prompt_id = result[:prompt_id]
-          generation_task.save
-        end
-
-        Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{filepath} > /dev/null 2>&1")
-
-        exif_data = {}
-        debug_log("Reading EXIF data from image file: #{filepath}")
-        exif_output = `exiftool -j "#{filepath}" 2>/dev/null`
-        begin
-          exif_json = JSON.parse(exif_output)
-          if exif_json.is_a?(Array) && exif_json.first
-            exif_data = exif_json.first
-            %w[SourceFile ExifToolVersion FileName Directory FilePermissions FileModifyDate FileAccessDate FileInodeChangeDate].each do |k|
-              exif_data.delete(k)
-            end
-            debug_log("Successfully read EXIF data from image")
-          end
-        rescue JSON::ParserError => e
-          debug_log("Failed to parse EXIF JSON: #{e.message}")
-        end
-
-        unless exif_data.empty?
-          generation_task.set_exif_data(exif_data)
-        end
-
-        server_strategy.update(
-          message,
-          reply,
-          DEBUG_MODE ? final_params.to_json : "",
-          File.open(filepath, "rb"),
-          filepath
-        )
-      rescue => e
-        error_msg = "❌ Image generation failed: #{e.message}"
-        puts "Error generating image: #{e.message}"
-        puts e.backtrace
-        debug_log("Image generation error: #{e.message}")
-        debug_log("Error backtrace: #{e.backtrace.join("\n")}")
-
-        # Mark task as failed
-        generation_task.mark_failed(e.message)
-
-        server_strategy.update(message, reply, error_msg)
-        server_strategy.respond(message, "```#{error_msg}\n#{e.backtrace.join("\n")}```")
-      end
     end
   end
 end
