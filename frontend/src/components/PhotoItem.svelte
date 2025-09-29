@@ -56,7 +56,7 @@
       <video
         src="/photos/{photo}"
         class="w-full h-64 object-cover block"
-        controls
+        autoplay
         muted
         loop
       />
