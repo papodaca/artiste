@@ -66,6 +66,10 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  function isVideo(path) {
+    return path.toLowerCase().endsWith(".mp4");
+  }
 </script>
 
 <div class="fixed inset-0 z-50">
@@ -126,11 +130,21 @@
           {:else if photoDetails}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div class="text-center">
-                <img
-                  src="/photos/{photoDetails.photo_path}"
-                  alt={photoDetails.task.output_filename}
-                  class="max-w-full h-auto rounded-lg shadow-lg"
-                />
+                {#if isVideo(photoDetails.photo_path)}
+                  <video
+                    src="/photos/{photoDetails.photo_path}"
+                    class="max-w-full h-auto rounded-lg shadow-lg"
+                    controls
+                    muted
+                    loop
+                  />
+                {:else}
+                  <img
+                    src="/photos/{photoDetails.photo_path}"
+                    alt={photoDetails.task.output_filename}
+                    class="max-w-full h-auto rounded-lg shadow-lg"
+                  />
+                {/if}
               </div>
 
               <div class="lg:pl-5">

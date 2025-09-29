@@ -42,17 +42,31 @@
   function getFilename(path) {
     return path.split("/").pop();
   }
+
+  function isVideo(path) {
+    return path.toLowerCase().endsWith(".mp4");
+  }
 </script>
 
 <div
   class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl fade-in relative"
 >
   <div class="block no-underline cursor-pointer" onclick={showDetails}>
-    <img
-      src="/photos/{photo}"
-      alt={getFilename(photo)}
-      class="w-full h-64 object-cover block"
-    />
+    {#if isVideo(photo)}
+      <video
+        src="/photos/{photo}"
+        class="w-full h-64 object-cover block"
+        controls
+        muted
+        loop
+      />
+    {:else}
+      <img
+        src="/photos/{photo}"
+        alt={getFilename(photo)}
+        class="w-full h-64 object-cover block"
+      />
+    {/if}
     <div class="p-4">
       <div class="font-bold text-gray-800 dark:text-gray-200 mb-1 break-words">
         {getFilename(photo)}
