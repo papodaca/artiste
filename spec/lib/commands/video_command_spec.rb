@@ -313,9 +313,10 @@ RSpec.describe VideoCommand do
         allow(FileUtils).to receive(:mkdir_p)
         allow(FileUtils).to receive(:cp)
 
-        # Mock File.open to return a file-like object
+        # Mock File operations
         mock_file = double("File")
         allow(File).to receive(:open).and_return(mock_file)
+        allow(File).to receive(:write) # Mock File.write to prevent actual file writing
 
         # Mock the generation task
         mock_generation_task = double("GenerationTask")
@@ -332,6 +333,7 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:save)
         allow(mock_generation_task).to receive(:mark_processing)
         allow(mock_generation_task).to receive(:mark_completed)
+        allow(mock_generation_task).to receive(:to_h).and_return({})
 
         # Expect the initial response
         expect(mattermost).to receive(:respond).with(message, "🎬 Generating video...").and_return(reply)
@@ -417,6 +419,7 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:save)
         allow(mock_generation_task).to receive(:mark_processing)
         allow(mock_generation_task).to receive(:mark_failed)
+        allow(mock_generation_task).to receive(:to_h).and_return({})
 
         # Expect the initial response
         expect(mattermost).to receive(:respond).with(message, "🎬 Generating video...").and_return(reply)
@@ -449,6 +452,7 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:private=)
         allow(mock_generation_task).to receive(:save)
         allow(mock_generation_task).to receive(:mark_failed)
+        allow(mock_generation_task).to receive(:to_h).and_return({})
 
         # Expect the initial response
         expect(mattermost).to receive(:respond).with(message, "🎬 Generating video...").and_return(reply)

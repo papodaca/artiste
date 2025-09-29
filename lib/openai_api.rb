@@ -125,14 +125,7 @@ class OpenAIAPI < Sinatra::Base
       # Notify WebSocket clients about new photo
       photo_relative_path = image_path.gsub(/^db\/photos\//, "")
       if defined?(PhotoGalleryWebSocket)
-        task_data = {
-          output_filename: generation_task.output_filename,
-          username: generation_task.username,
-          workflow_type: generation_task.workflow_type,
-          completed_at: generation_task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
-          prompt: generation_task.prompt
-        }
-        PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, task_data)
+        PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, generation_task.to_h)
       end
 
       # Encode the image data as base64

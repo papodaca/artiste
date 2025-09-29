@@ -159,6 +159,16 @@ class GenerationTask < Sequel::Model(:generation_tasks)
     end
     self.save
   end
+
+  def to_h
+    {
+      output_filename: self.output_filename,
+      username: self.username,
+      workflow_type: self.workflow_type,
+      completed_at: self.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
+      prompt: self.prompt
+    }
+  end
   
   # Class methods for querying
   def self.for_user(user_id)

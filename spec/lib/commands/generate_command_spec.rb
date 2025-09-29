@@ -11,7 +11,7 @@ RSpec.describe GenerateCommand do
   let(:command) { described_class.new(mattermost, message, parsed_result, user_settings, false) }
   let(:discord_command) { described_class.new(discord, discord_message, parsed_result, user_settings, false) }
   let(:reply) { {"id" => "reply-id"} }
-  let(:generation_task) { double("GenerationTask", id: 1, username: "testuser", prompt: "a beautiful sunset", workflow_type: "flux", status: "pending", private: false, file_path: "db/photos/test", output_filename: "test.png", completed_at: Time.now, comfyui_prompt_id: nil) }
+  let(:generation_task) { double("GenerationTask", id: 1, username: "testuser", prompt: "a beautiful sunset", workflow_type: "flux", status: "pending", private: false, file_path: "db/photos/test", output_filename: "test.png", completed_at: Time.now, comfyui_prompt_id: nil, to_h: {}) }
 
   before do
     # Mock PromptParameterParser

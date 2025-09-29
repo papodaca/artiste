@@ -46,10 +46,14 @@ class ChutesHttpClient
   end
 
   # Generate video using Chutes API
-  def generate_video(payload)
-    response = self.class.post("https://chutes-wan2-1-14b.chutes.ai/text2video",
-      body: payload.to_json,
-      timeout: 1000 * 1000)
+  def generate_video(payload, &block)
+    tries = 0
+    response = retry_on_failure do
+      tries += 1
+      self.class.post("https://chutes-wan2-1-14b.chutes.ai/text2video",
+        body: payload.to_json,
+        timeout: 1000 * 1000)
+    end
 
     if response.success?
       {
@@ -59,5 +63,56 @@ class ChutesHttpClient
     else
       raise "Failed to generate video: #{response.code} - #{response.body}"
     end
+  end
+
+  private
+
+  # Retry mechanism for specific error conditions
+  def retry_on_failure(max_retries = 5, delay_seconds = 30)
+    retries = 0
+
+    loop do
+      response = yield
+
+      # Check if we need to retry based on status code and error message
+      if should_retry?(response)
+        retries += 1
+        if retries <= max_retries
+          sleep delay_seconds
+          next
+        end
+      end
+
+      return response
+    end
+  end
+
+  # Determine if a response should trigger a retry
+  def should_retry?(response)
+    return false if response.success?
+
+    # Check for status code 503 with specific error message
+    if response.code == 503
+      error_body = begin
+        JSON.parse(response.body)
+      rescue
+        {}
+      end
+      error_detail = error_body["detail"] || ""
+      return error_detail.include?("No instances available (yet)")
+    end
+
+    # Check for status code 29 with specific error message
+    if response.code == 29
+      error_body = begin
+        JSON.parse(response.body)
+      rescue
+        {}
+      end
+      error_detail = error_body["detail"] || ""
+      return error_detail.include?("Infrastructure is at maximum capacity")
+    end
+
+    false
   end
 end

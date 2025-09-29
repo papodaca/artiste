@@ -457,7 +457,7 @@ RSpec.describe EditCommand do
             workflow_type: "qwen-image-edit",
             status: "pending"
           )
-        ).and_return(double("GenerationTask", id: 123, mark_processing: nil, mark_completed: nil, processing_time_seconds: 1.5, file_path: "db/photos/2025/09/19", output_filename: "test_output.png", username: "test_user", workflow_type: "qwen-image-edit", completed_at: Time.now, prompt: "a beautiful sunset", set_exif_data: nil))
+        ).and_return(double("GenerationTask", id: 123, mark_processing: nil, mark_completed: nil, processing_time_seconds: 1.5, file_path: "db/photos/2025/09/19", output_filename: "test_output.png", username: "test_user", workflow_type: "qwen-image-edit", completed_at: Time.now, prompt: "a beautiful sunset", set_exif_data: nil, to_h: {}))
 
         expect(mattermost).to receive(:respond).and_return(double("reply"))
         expect(mattermost).to receive(:update).at_least(:once)

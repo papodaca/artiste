@@ -128,18 +128,9 @@ class EditCommand < BaseCommand
 
       server.update(message, reply, "", Kernel.open(image_path, "rb"), generation_task.output_filename)
 
-      photo_relative_path = image_path.gsub(/^db\/photos\//, "")
-
       # Notify WebSocket clients about new photo
       if defined?(PhotoGalleryWebSocket)
-        task_data = {
-          output_filename: generation_task.output_filename,
-          username: generation_task.username,
-          workflow_type: generation_task.workflow_type,
-          completed_at: generation_task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
-          prompt: generation_task.prompt
-        }
-        PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, task_data)
+        PhotoGalleryWebSocket.notify_new_photo(image_path, generation_task.to_h)
       end
 
       Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{image_path} > /dev/null 2>&1")

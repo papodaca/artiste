@@ -81,20 +81,22 @@ class PhotoGalleryWebSocket
     end
 
     def notify_new_photo(photo_path, task_data = nil)
+      rel_path = photo_path.gsub(/^db\/photos\//, "")
       message = {
         type: "new_photo",
-        photo_path: photo_path,
-        photo_url: "/photo/#{photo_path}",
+        photo_path: rel_path,
+        photo_url: "/photos/#{rel_path}",
         task: task_data
       }
       broadcast(message)
     end
 
     def notify_photo_updated(photo_path, task_data = nil)
+      rel_path = photo_path.gsub(/^db\/photos\//, "")
       message = {
         type: "photo_updated",
-        photo_path: photo_path,
-        photo_url: "/photo/#{photo_path}",
+        photo_path: rel_path,
+        photo_url: "/photos/#{rel_path}",
         task: task_data
       }
       broadcast(message)

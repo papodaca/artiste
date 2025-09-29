@@ -104,20 +104,9 @@ class GenerateCommand < BaseCommand
     filepath = File.join(target_dir, filename)
     File.write(filepath, result[:image_data])
 
-    # Get photo path for WebSocket notification (relative path without db/photos prefix)
-    photo_relative_path = target_dir.gsub(/^db\/photos\//, "")
-    photo_relative_path = File.join(photo_relative_path, filename)
-
     # Notify WebSocket clients about new photo
     if defined?(PhotoGalleryWebSocket)
-      task_data = {
-        output_filename: generation_task.output_filename,
-        username: generation_task.username,
-        workflow_type: generation_task.workflow_type,
-        completed_at: generation_task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
-        prompt: generation_task.prompt
-      }
-      PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, task_data)
+      PhotoGalleryWebSocket.notify_new_photo(filepath, generation_task.to_h)
     end
 
     if generation_task.comfyui_prompt_id.nil? && result.has_key?(:prompt_id)
