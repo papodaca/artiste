@@ -6,6 +6,7 @@ class HelpCommand < BaseCommand
         --basesize|-b <pixels> Set base size for aspect ratio calculations
         --height|-h <pixels>   Set image height
         --model|-m <name>      Set model (flux, qwen)
+        --no|-n                Set the negative prompt
         --preset|-P <name>     Apply preset parameters and append preset prompt
         --<preset_name>        Apply preset directly by name (e.g., --vibrant_colors)
         --private|-p           Generate images that are not publicly shared
@@ -61,6 +62,20 @@ class HelpCommand < BaseCommand
           - Use --task with a task ID (e.g., --task 12345)
         
         Example: /edit make this image more vibrant --image output_20241230_123456.png --steps 20
+      
+      /video <prompt> [options] - Generate a video based on your prompt
+        Options:
+          --frames|-f <number>     Set number of frames (default: 81)
+          --guidance|-g <number>   Set guidance scale (default: 5.0)
+          --ar|-a <ratio>          Set aspect ratio (e.g., 3:2, 16:9, 1:1)
+          --no|-n                  Set the negative prompt
+          --preset|-P <name>       Apply preset parameters and append preset prompt
+          --<preset_name>          Apply preset directly by name (e.g., --vibrant_colors)
+          --private|-p             Generate videos that are not publicly shared
+          --steps|-s <number>      Set number of generation steps
+          --seed <number>          Set seed for reproducible generation
+        
+        Example: /video a beautiful sunset --ar 16:9 --frames 120 --guidance 7.0
       
       /help - Show this help message
       

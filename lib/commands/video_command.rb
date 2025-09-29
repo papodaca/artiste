@@ -71,7 +71,7 @@ class VideoCommand < BaseCommand
     prompt = parsed_result[:prompt]
     resolution = parsed_result[:resolution]
     seed = parsed_result[:seed]
-    steps = parsed_result[:steps]
+    steps = parsed_result[:steps] || 25
     frames = parsed_result[:frames] || 81
     guidance_scale = parsed_result[:guidance_scale] || 5.0
     negative_prompt = parsed_result[:negative_prompt]
@@ -126,15 +126,15 @@ class VideoCommand < BaseCommand
 
     # Prepare the payload
     payload = {
-      "resolution" => resolution,
-      "seed" => seed,
-      "steps" => steps,
-      "frames" => frames,
-      "prompt" => prompt,
-      "sample_shift" => nil,
-      "single_frame" => false,
-      "guidance_scale" => guidance_scale,
-      "negative_prompt" => negative_prompt
+      resolution: resolution,
+      seed: seed,
+      steps: steps,
+      frames: frames,
+      prompt: prompt,
+      sample_shift: nil,
+      single_frame: false,
+      guidance_scale: guidance_scale,
+      negative_prompt: negative_prompt
     }
 
     # Generate the video
