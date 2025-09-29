@@ -103,7 +103,7 @@ RSpec.describe VideoCommand do
 
     it "parses a prompt into a command structure" do
       result = VideoCommand.parse("A beautiful landscape")
-      
+
       # Check that the result has the expected structure
       expect(result).to include(:prompt, :resolution, :seed, :steps, :frames, :guidance, :negative_prompt)
       expect(result[:prompt]).to eq("A beautiful landscape")
@@ -123,7 +123,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape --frames 100")
       expect(result[:frames]).to eq(100)
       expect(result[:prompt]).to eq("A beautiful landscape")
@@ -137,7 +137,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape --guidance 7.5")
       expect(result[:guidance]).to eq(7.5)
       expect(result[:prompt]).to eq("A beautiful landscape")
@@ -151,7 +151,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape -f 50")
       expect(result[:frames]).to eq(50)
       expect(result[:prompt]).to eq("A beautiful landscape")
@@ -165,7 +165,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape -g 3.5")
       expect(result[:guidance]).to eq(3.5)
       expect(result[:prompt]).to eq("A beautiful landscape")
@@ -179,7 +179,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("1280*720")
     end
@@ -192,7 +192,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("720*1280")
     end
@@ -205,7 +205,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("1024*1024")
     end
@@ -218,7 +218,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("832*480")
     end
@@ -231,7 +231,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("480*832")
     end
@@ -244,7 +244,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape")
       expect(result[:resolution]).to eq("1024*1024")
     end
@@ -257,7 +257,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape --frames 100 --guidance 7.5")
       expect(result[:prompt]).to eq("A beautiful landscape")
       expect(result[:frames]).to eq(100)
@@ -272,7 +272,7 @@ RSpec.describe VideoCommand do
         steps: 25,
         negative_prompt: ""
       })
-      
+
       result = VideoCommand.parse("A beautiful landscape -f 50 -g 3.5")
       expect(result[:prompt]).to eq("A beautiful landscape")
       expect(result[:frames]).to eq(50)
@@ -323,6 +323,10 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:file_path).and_return("db/photos/2025/09/28")
         allow(mock_generation_task).to receive(:output_filename).and_return("chutes_1759102469.mp4")
         allow(mock_generation_task).to receive(:processing_time_seconds).and_return(1.5)
+        allow(mock_generation_task).to receive(:username).and_return("test_user")
+        allow(mock_generation_task).to receive(:workflow_type).and_return("video-generation")
+        allow(mock_generation_task).to receive(:completed_at).and_return(Time.now)
+        allow(mock_generation_task).to receive(:prompt).and_return("A beautiful landscape")
         allow(GenerationTask).to receive(:create).and_return(mock_generation_task)
         allow(mock_generation_task).to receive(:private=)
         allow(mock_generation_task).to receive(:save)
@@ -404,6 +408,10 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:id).and_return(123)
         allow(mock_generation_task).to receive(:file_path).and_return("db/photos/2025/09/28")
         allow(mock_generation_task).to receive(:output_filename).and_return("chutes_1759102469.mp4")
+        allow(mock_generation_task).to receive(:username).and_return("test_user")
+        allow(mock_generation_task).to receive(:workflow_type).and_return("video-generation")
+        allow(mock_generation_task).to receive(:completed_at).and_return(Time.now)
+        allow(mock_generation_task).to receive(:prompt).and_return("A beautiful landscape")
         allow(GenerationTask).to receive(:create).and_return(mock_generation_task)
         allow(mock_generation_task).to receive(:private=)
         allow(mock_generation_task).to receive(:save)
@@ -433,6 +441,10 @@ RSpec.describe VideoCommand do
         allow(mock_generation_task).to receive(:id).and_return(123)
         allow(mock_generation_task).to receive(:file_path).and_return("db/photos/2025/09/28")
         allow(mock_generation_task).to receive(:output_filename).and_return("chutes_1759102469.mp4")
+        allow(mock_generation_task).to receive(:username).and_return("test_user")
+        allow(mock_generation_task).to receive(:workflow_type).and_return("video-generation")
+        allow(mock_generation_task).to receive(:completed_at).and_return(Time.now)
+        allow(mock_generation_task).to receive(:prompt).and_return("A beautiful landscape")
         allow(GenerationTask).to receive(:create).and_return(mock_generation_task)
         allow(mock_generation_task).to receive(:private=)
         allow(mock_generation_task).to receive(:save)

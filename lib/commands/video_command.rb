@@ -139,25 +139,15 @@ class VideoCommand < BaseCommand
 
     # Generate the video
     result = http_client.generate_video(payload)
-    video_data = result[:video_data]
-    prompt_id = result[:prompt_id]
 
     # Update task as completed
-    update_generation_task_completed(generation_task, prompt_id)
+    update_generation_task_completed(generation_task, result[:prompt_id])
     server.update(message, reply, "✅ Video generated! Uploading...")
-
-    # Save the video to a temporary file
-    temp_file = Tempfile.new(["video", ".mp4"])
-    temp_file.binmode
-    temp_file.write(video_data)
-    temp_file.flush
 
     # Create the final output path
     video_path = "#{generation_task.file_path}/#{generation_task.output_filename}"
     FileUtils.mkdir_p(File.dirname(video_path))
-
-    # Copy the video to the final location
-    FileUtils.cp(temp_file.path, video_path)
+    File.write(video_path,  result[:video_data])
 
     server.update(
       message,
@@ -167,9 +157,16 @@ class VideoCommand < BaseCommand
       generation_task.output_filename
     )
 
-    # Clean up the temporary file
-    temp_file.close
-    temp_file.unlink
+    if defined?(PhotoGalleryWebSocket)
+      task_data = {
+        output_filename: generation_task.output_filename,
+        username: generation_task.username,
+        workflow_type: generation_task.workflow_type,
+        completed_at: generation_task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
+        prompt: generation_task.prompt
+      }
+      PhotoGalleryWebSocket.notify_new_photo(photo_relative_path, task_data)
+    end
   rescue => e
     debug_log("Error generating video: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the video: #{e.message}")
