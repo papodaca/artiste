@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { formatDuration, intervalToDuration, formatRelative } from "date-fns";
 
   let { selectedPhoto, onclose } = $props();
   let photoDetails = $state(null);
@@ -53,7 +54,19 @@
   }
 
   function formatDate(dateString) {
-    return dateString || "N/A";
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return formatRelative(date, new Date());
+    } catch (error) {
+      return dateString;
+    }
+  }
+
+  function formatProcessingTime(seconds) {
+    if (!seconds) return "N/A";
+    let duration = intervalToDuration({ start: 0, end: seconds * 1000 });
+    return formatDuration(duration, { delimiter: " " });
   }
 
   function formatJson(obj) {
@@ -203,45 +216,23 @@
                   <div class="mb-3">
                     <span
                       class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]"
-                      >Queued At:</span
+                      >Completed At:</span
                     >
                     <span class="text-gray-800 dark:text-gray-200 break-words"
-                      >{formatDate(photoDetails.task.queued_at)}</span
+                      >{formatDate(photoDetails.task.completed_at)}</span
                     >
                   </div>
-                  {#if photoDetails.task.started_at}
-                    <div class="mb-3">
-                      <span
-                        class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]"
-                        >Started At:</span
-                      >
-                      <span class="text-gray-800 dark:text-gray-200 break-words"
-                        >{formatDate(photoDetails.task.started_at)}</span
-                      >
-                    </div>
-                  {/if}
-                  {#if photoDetails.task.completed_at}
-                    <div class="mb-3">
-                      <span
-                        class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]"
-                        >Completed At:</span
-                      >
-                      <span class="text-gray-800 dark:text-gray-200 break-words"
-                        >{formatDate(photoDetails.task.completed_at)}</span
-                      >
-                    </div>
-                  {/if}
-                  {#if photoDetails.task.processing_time_seconds}
-                    <div class="mb-3">
-                      <span
-                        class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]"
-                        >Processing Time:</span
-                      >
-                      <span class="text-gray-800 dark:text-gray-200 break-words"
-                        >{photoDetails.task.processing_time_seconds.toFixed(2)} seconds</span
-                      >
-                    </div>
-                  {/if}
+                  <div class="mb-3">
+                    <span
+                      class="font-bold text-gray-600 dark:text-gray-400 inline-block min-w-[140px]"
+                      >Processing Time:</span
+                    >
+                    <span class="text-gray-800 dark:text-gray-200 break-words"
+                      >{formatProcessingTime(
+                        photoDetails.task.processing_time_seconds,
+                      )}</span
+                    >
+                  </div>
                 </div>
 
                 <div class="mb-6">
