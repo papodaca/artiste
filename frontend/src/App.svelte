@@ -1,5 +1,5 @@
 <script>
-  import PhotoGallery from "./components/PhotoGallery.svelte";
+  import PhotoGallery from './components/PhotoGallery.svelte';
 </script>
 
 <PhotoGallery />
@@ -26,19 +26,15 @@
 
   /* Grid background pattern */
   :global(body) {
-    background-image: linear-gradient(
-        rgba(156, 163, 175, 0.2) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(rgba(156, 163, 175, 0.2) 1px, transparent 1px),
       linear-gradient(90deg, rgba(156, 163, 175, 0.2) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
   :global(.dark body) {
-    background-image: linear-gradient(
-        rgba(75, 85, 99, 0.2) 1px,
-        transparent 1px
-      ),
+    background-image:
+      linear-gradient(rgba(75, 85, 99, 0.2) 1px, transparent 1px),
       linear-gradient(90deg, rgba(75, 85, 99, 0.2) 1px, transparent 1px);
   }
 

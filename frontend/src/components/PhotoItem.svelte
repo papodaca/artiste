@@ -1,5 +1,5 @@
 <script>
-  let { photo, onshowDetails } = $props();
+  const { photo, onshowDetails } = $props();
 
   function showDetails() {
     onshowDetails?.(photo);
@@ -11,17 +11,16 @@
     try {
       // Get the full URL (handles different deployment paths)
       const fullUrl = window.location.origin + relativePath;
-
-      const type = "text/plain";
+      const type = 'text/plain';
       const clipboardItemData = {
-        [type]: fullUrl,
+        [type]: fullUrl
       };
       const clipboardItem = new ClipboardItem(clipboardItemData);
+      const button = event.target.closest('button');
+      const originalHTML = button.innerHTML;
       await navigator.clipboard.write([clipboardItem]);
 
       // Show visual feedback
-      const button = event.target.closest("button");
-      const originalHTML = button.innerHTML;
 
       // Show checkmark icon
       button.innerHTML = `
@@ -35,50 +34,40 @@
         button.innerHTML = originalHTML;
       }, 1500);
     } catch (error) {
-      console.error("Error copying URL:", error);
+      console.error('Error copying URL:', error);
     }
   }
 
   function getFilename(path) {
-    return path.split("/").pop();
+    return path.split('/').pop();
   }
 
   function isVideo(path) {
-    return path.toLowerCase().endsWith(".mp4");
+    return path.toLowerCase().endsWith('.mp4');
   }
 </script>
 
 <div
-  class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl fade-in relative"
+  class="fade-in relative overflow-hidden rounded-lg bg-white shadow-lg transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800"
 >
-  <div class="block no-underline cursor-pointer" onclick={showDetails}>
+  <div class="block cursor-pointer no-underline" onclick={showDetails}>
     {#if isVideo(photo)}
-      <video
-        src="/photos/{photo}"
-        class="w-full h-64 object-cover block"
-        autoplay
-        muted
-        loop
-      />
+      <video src="/photos/{photo}" class="block h-64 w-full object-cover" autoplay muted loop />
     {:else}
-      <img
-        src="/photos/{photo}"
-        alt={getFilename(photo)}
-        class="w-full h-64 object-cover block"
-      />
+      <img src="/photos/{photo}" alt={getFilename(photo)} class="block h-64 w-full object-cover" />
     {/if}
     <div class="p-4">
-      <div class="font-bold text-gray-800 dark:text-gray-200 mb-1 break-words">
+      <div class="mb-1 font-bold break-words text-gray-800 dark:text-gray-200">
         {getFilename(photo)}
       </div>
-      <div class="text-sm text-gray-600 dark:text-gray-400 break-words">
+      <div class="text-sm break-words text-gray-600 dark:text-gray-400">
         {photo}
       </div>
     </div>
   </div>
   <button
     type="button"
-    class="absolute top-2 right-2 p-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-md hover:shadow-lg transition-all duration-200 z-10"
+    class="absolute top-2 right-2 z-10 rounded-full bg-white/80 p-2 text-gray-800 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-lg dark:bg-gray-800/80 dark:text-gray-200 dark:hover:bg-gray-800"
     aria-label="Copy image URL to clipboard"
     onclick={(event) => copyImageUrl(event, `/photos/${photo}`)}
   >
@@ -92,7 +81,7 @@
       stroke-width="2"
       stroke-linecap="round"
       stroke-linejoin="round"
-      class="w-5 h-5"
+      class="h-5 w-5"
     >
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
