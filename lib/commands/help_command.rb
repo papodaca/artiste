@@ -63,7 +63,7 @@ class HelpCommand < BaseCommand
         
         Example: /edit make this image more vibrant --image output_20241230_123456.png --steps 20
       
-      /video <prompt> [options] - Generate a video based on your prompt
+      /video <prompt> [options] - Generate a video based on your prompt or from an image
         Options:
           --frames|-f <number>     Set number of frames (default: 81)
           --guidance|-g <number>   Set guidance scale (default: 5.0)
@@ -74,8 +74,21 @@ class HelpCommand < BaseCommand
           --private|-p             Generate videos that are not publicly shared
           --steps|-s <number>      Set number of generation steps
           --seed <number>          Set seed for reproducible generation
+          --image|-i <url|filename> Specify image URL or filename to convert to video
+          --task|-t <id>            Specify task ID of previously generated image to convert to video
         
-        Example: /video a beautiful sunset --ar 16:9 --frames 120 --guidance 7.0
+        You can provide images in multiple ways:
+          - Attach images directly to your message
+          - Use --image with a URL (e.g., --image https://example.com/image.png)
+          - Use --image with a filename, for previous gen (e.g., --image output_20241230_123456.png)
+          - Use --task with a task ID (e.g., --task 12345)
+        
+        Note: Only one image can be used for video generation at a time.
+        
+        Examples:
+          /video a beautiful sunset --ar 16:9 --frames 120 --guidance 7.0
+          /video make this image animated --image output_20241230_123456.png
+          /video add motion to this scene --task 12345
       
       /help - Show this help message
       

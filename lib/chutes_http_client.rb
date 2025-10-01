@@ -65,6 +65,22 @@ class ChutesHttpClient
     end
   end
 
+  # Generate video from image using Chutes API
+  def generate_image2video(payload)
+    response = self.class.post("https://chutes-wan2-1-14b.chutes.ai/image2video",
+      body: payload.to_json,
+      timeout: 1000 * 1000)
+
+    if response.success?
+      {
+        video_data: response.body,
+        prompt_id: response.headers["x-chutes-invocationid"]
+      }
+    else
+      raise "Failed to generate video from image: #{response.code} - #{response.body}"
+    end
+  end
+
   private
 
   # Retry mechanism for specific error conditions

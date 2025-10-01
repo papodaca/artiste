@@ -134,7 +134,7 @@
                   <video
                     src="/photos/{photoDetails.photo_path}"
                     class="max-w-full h-auto rounded-lg shadow-lg"
-                    controls
+                    autoplay
                     muted
                     loop
                   />

@@ -494,6 +494,188 @@ RSpec.describe EditCommand do
         command.execute
       end
     end
+
+    context "when more than 3 images are provided" do
+      let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
+
+      context "with 4 attached files" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset"
+          }
+        }
+
+        before do
+          allow(message).to receive(:[]).with("attached_files").and_return([
+            "https://example.com/image1.jpg",
+            "https://example.com/image2.jpg",
+            "https://example.com/image3.jpg",
+            "https://example.com/image4.jpg"
+          ])
+        end
+
+        it "responds with error message about image limit" do
+          expect(mattermost).to receive(:respond) do |msg, response|
+            expect(msg).to eq(message)
+            expect(response).to include("❌ You can only edit up to 3 images at a time. You provided 4 images.")
+          end
+
+          command.execute
+        end
+      end
+
+      context "with 4 image parameters" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset",
+            image: ["image1.jpg", "image2.jpg", "image3.jpg", "image4.jpg"]
+          }
+        }
+
+        it "responds with error message about image limit" do
+          expect(mattermost).to receive(:respond) do |msg, response|
+            expect(msg).to eq(message)
+            expect(response).to include("❌ You can only edit up to 3 images at a time. You provided 4 images.")
+          end
+
+          command.execute
+        end
+      end
+
+      context "with 2 attached files and 2 image parameters" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset",
+            image: ["image1.jpg", "image2.jpg"]
+          }
+        }
+
+        before do
+          allow(message).to receive(:[]).with("attached_files").and_return([
+            "https://example.com/image3.jpg",
+            "https://example.com/image4.jpg"
+          ])
+        end
+
+        it "responds with error message about image limit" do
+          expect(mattermost).to receive(:respond) do |msg, response|
+            expect(msg).to eq(message)
+            expect(response).to include("❌ You can only edit up to 3 images at a time. You provided 4 images.")
+          end
+
+          command.execute
+        end
+      end
+
+      context "with 2 attached files and 1 task_id" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset",
+            task_id: 123
+          }
+        }
+
+        before do
+          allow(message).to receive(:[]).with("attached_files").and_return([
+            "https://example.com/image1.jpg",
+            "https://example.com/image2.jpg",
+            "https://example.com/image3.jpg"
+          ])
+        end
+
+        it "responds with error message about image limit" do
+          expect(mattermost).to receive(:respond) do |msg, response|
+            expect(msg).to eq(message)
+            expect(response).to include("❌ You can only edit up to 3 images at a time. You provided 4 images.")
+          end
+
+          command.execute
+        end
+      end
+
+      context "with 2 attached files and 2 image parameters" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset",
+            image: ["image1.jpg", "image2.jpg"]
+          }
+        }
+
+        before do
+          allow(message).to receive(:[]).with("attached_files").and_return([
+            "https://example.com/image3.jpg",
+            "https://example.com/image4.jpg"
+          ])
+        end
+
+        it "responds with error message about image limit" do
+          expect(mattermost).to receive(:respond) do |msg, response|
+            expect(msg).to eq(message)
+            expect(response).to include("❌ You can only edit up to 3 images at a time. You provided 4 images.")
+          end
+
+          command.execute
+        end
+      end
+
+      context "with exactly 3 images (valid case)" do
+        let(:parsed_result) {
+          {
+            prompt: "a beautiful sunset",
+            image: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+          }
+        }
+
+        before do
+          allow(message).to receive(:[]).with("attached_files").and_return([
+            "https://example.com/image3.jpg"
+          ])
+
+          # Mock the image download
+          allow_any_instance_of(EditCommand).to receive(:download_image).and_return("fake_image_data")
+          allow(Base64).to receive(:strict_encode64).and_return("base64_encoded_image")
+
+          # Mock the image generation with callback
+          allow(image_generation_client).to receive(:generate) do |&block|
+            block&.call(:started, "test-prompt-id", nil)
+            block&.call(:completed, "test-prompt-id", nil)
+            {
+              image_data: "generated_image_data",
+              prompt_id: "test-prompt-id"
+            }
+          end
+
+          # Mock task creation
+          allow(GenerationTask).to receive(:create).and_return(
+            double("GenerationTask",
+              id: 123,
+              mark_processing: nil,
+              mark_completed: nil,
+              mark_failed: nil,
+              processing_time_seconds: 1.5,
+              file_path: "db/photos/2025/09/19",
+              output_filename: "test_output.png",
+              username: "test_user",
+              workflow_type: "qwen-image-edit",
+              completed_at: Time.now,
+              prompt: "a beautiful sunset",
+              set_exif_data: nil,
+              to_h: {})
+          )
+
+          # Mock file operations for saving the result
+          allow(File).to receive(:binwrite)
+          allow(Kernel).to receive(:open).and_return(double("file", close: nil))
+          allow(Kernel).to receive(:system)
+        end
+
+        it "processes the images without error" do
+          expect(mattermost).to receive(:respond).and_return(double("reply"))
+          expect(mattermost).to receive(:update).at_least(:once)
+          expect { command.execute }.not_to raise_error
+        end
+      end
+    end
   end
 
   describe "#download_image" do

@@ -58,11 +58,15 @@ class EditCommand < BaseCommand
     debug_log("Editing #{image_sources.join(" and ")} with prompt: #{prompt}")
 
     begin
+      total_images = (message["attached_files"]&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
+      if total_images > 3
+        server.respond(message, "❌ You can only edit up to 3 images at a time. You provided #{total_images} images.")
+        return
+      end
       # Create generation task at the beginning
       generation_task = create_generation_task
 
       # Send initial response
-      total_images = (message["attached_files"]&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
       initial_response = "🖼️ Editing your image#{"s" if total_images > 1}..."
       reply = server.respond(message, initial_response)
 
