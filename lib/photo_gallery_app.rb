@@ -3,7 +3,11 @@
 require "sinatra/base"
 require "pathname"
 require "base64"
+require "json"
+require "cgi"
+require "date"
 require_relative "openai_api"
+require_relative "photo_gallery_web_socket"
 
 class PhotoGalleryApp < Sinatra::Base
   # Set up the web server
@@ -25,8 +29,8 @@ class PhotoGalleryApp < Sinatra::Base
 
   configure do
     set :threaded, false
-
     set :host_authorization, {permitted_hosts: []}
+    set :views, File.join(settings.root, "..", "views")
   end
 
   def start_websocket_server
@@ -45,7 +49,7 @@ class PhotoGalleryApp < Sinatra::Base
     # Get all completed generation tasks, ordered by completed_at in descending order (newest first)
     tasks = GenerationTask.pub.reverse_order(:completed_at)
 
-    # Build photo paths from task data
+    # Build photo data from task data
     photos = tasks.map do |task|
       # Construct the relative path from photos directory
       # file_path returns the directory path like "db/photos/YYYY/MM/DD"
@@ -53,7 +57,12 @@ class PhotoGalleryApp < Sinatra::Base
       # Remove the "db/photos/" prefix to get just YYYY/MM/DD
       date_path = dir.gsub(/^db\/photos\//, "")
       # Combine with output filename
-      File.join(date_path, task.output_filename) if task.output_filename
+      if task.output_filename
+        {
+          path: File.join(date_path, task.output_filename),
+          id: task.id
+        }
+      end
     end.compact # Remove any nil entries
 
     # Apply pagination if specified
@@ -65,99 +74,98 @@ class PhotoGalleryApp < Sinatra::Base
     end
   end
 
-  # Root route - serve Svelte frontend
-  get "/" do
-    # Check if we're in debug mode (which includes --dev flag)
-    if @debug_mode
-      # In dev mode, redirect to the Vite dev server
-      redirect to("http://localhost:5173")
+  # Helper methods for ERB templates
+  def get_filename(path)
+    path.split("/").last
+  end
+
+  def is_video(path)
+    path.downcase.end_with?(".mp4")
+  end
+
+  def get_status_class(status)
+    case status
+    when "completed"
+      "bg-status-completed-bg text-status-completed-text"
+    when "processing"
+      "bg-status-processing-bg text-status-processing-text"
+    when "failed"
+      "bg-status-failed-bg text-status-failed-text"
     else
-      # In production mode, serve the built Svelte app
-      send_file File.join(settings.root, "..", "frontend", "dist", "index.html")
+      "bg-status-pending-bg text-status-pending-text"
     end
   end
 
-  # API endpoint for infinite scroll - returns JSON list of photos
-  get "/api/photos" do
-    content_type :json
+  def format_date(date_string)
+    return "N/A" unless date_string
+    begin
+      date = Date.parse(date_string)
+      date.strftime("%B %d, %Y at %I:%M %p")
+    rescue
+      date_string
+    end
+  end
 
-    # Parse offset and limit parameters
+  def format_processing_time(seconds)
+    return "N/A" unless seconds
+
+    ActiveSupport::Duration.build(seconds).parts.map do |key, value|
+      [value.to_i, key].join(" ")
+    end.join(" ")
+  end
+
+  def format_json(obj)
+    return "" unless obj && !obj.empty?
+    JSON.pretty_generate(obj)
+  rescue
+    obj.to_s
+  end
+
+  def escape_html(text)
+    CGI.escapeHTML(text.to_s)
+  end
+
+  get "/" do
+    offset = 0
+    limit = PHOTO_BATCH_SIZE
+    photos = get_photos(offset:, limit:)
+    photo_details = params.has_key?(:detail) ? get_photo_details(params[:detail]) : nil
+    erb :gallery, layout: :layout, locals: {photos:, offset:, limit:, photo_details:}
+  end
+
+  get "/tasks" do
+    redirect to("/") unless request.env["HTTP_ACCEPT"]&.include?("text/vnd.turbo-stream.html")
+
     offset = params[:offset].to_i if params[:offset]
     offset ||= 0
     limit = params[:limit].to_i if params[:limit]
-    limit = limit.between?(1, 100) ? limit : PHOTO_BATCH_SIZE # Cap limit at 100
-
-    # Get photos with pagination
+    limit = limit.between?(1, 100) ? limit : PHOTO_BATCH_SIZE
     photos = get_photos(offset: offset, limit: limit)
+    has_more = photos.length == limit
 
-    # Return as JSON
-    {photos: photos}.to_json
+    content_type "text/vnd.turbo-stream.html"
+    erb :photo_stream, layout: nil, locals: {photos:, offset:, limit:, has_more:}
   end
-
-  # API endpoint for photo details
-  get "/api/photo-details/*" do
-    content_type :json
+  # Photo details route for Turbo Frame modal
+  get "/photo-details/:id" do
+    content_type :html
 
     begin
-      photo_path = params[:splat][0]
-      filename = File.basename(photo_path)
+      redirect to("/?detail=#{params[:id]}") unless request.env["HTTP_ACCEPT"]&.include?("text/vnd.turbo-stream.html")
 
-      # Find the generation task by filename
-      task = GenerationTask.where(output_filename: filename).first
-
-      if task.nil?
-        status 404
-        return {error: "Generation task not found for #{filename}"}.to_json
+      photo_details = get_photo_details(params[:id])
+      if photo_details.has_key?(:error)
+        return erb :photo_details, layout: false, locals: {photo_details: nil, error: photo_details[:error], frame: true}
       end
 
-      # Safely parse parameters JSON
-      parameters = {}
-      if task.parameters && !task.parameters.empty? && task.parameters != "{}"
-        begin
-          parameters = JSON.parse(task.parameters)
-        rescue JSON::ParserError
-          # If JSON parsing fails, just return empty hash
-          parameters = {}
-        end
-      end
-
-      # Safely parse EXIF data JSON
-      exif_data = {}
-      if task.exif_data && !task.exif_data.empty? && task.exif_data != "{}"
-        begin
-          exif_data = JSON.parse(task.exif_data)
-        rescue JSON::ParserError
-          # If JSON parsing fails, just return empty hash
-          exif_data = {}
-        end
-      end
-
-      # Return photo details as JSON
-      {
-        photo_path: photo_path,
-        task: {
-          output_filename: task.output_filename,
-          status: task.status,
-          username: task.username || task.user_id,
-          workflow_type: task.workflow_type || "Unknown",
-          queued_at: task.queued_at ? task.queued_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
-          started_at: task.started_at ? task.started_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
-          completed_at: task.completed_at ? task.completed_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
-          processing_time_seconds: task.processing_time_seconds,
-          prompt: task.prompt,
-          parameters: parameters,
-          exif_data: exif_data,
-          error_message: task.error_message,
-          comfyui_prompt_id: task.comfyui_prompt_id
-        }
-      }.to_json
+      erb :photo_details, layout: false, locals: {photo_details: photo_details, error: nil, frame: true}
     rescue => e
       # Log the error for debugging
-      puts "Error in /api/photo-details/: #{e.class.name}: #{e.message}"
+      puts "Error in /photo-details/: #{e.class.name}: #{e.message}"
       puts e.backtrace.join("\n")
 
-      status 500
-      return {error: "Internal server error: #{e.class.name}: #{e.message}"}.to_json
+      error = "Internal server error: #{e.class.name}: #{e.message}"
+      erb :photo_details, layout: false, locals: {photo_details: nil, error: error}
     end
   end
 
@@ -204,6 +212,60 @@ class PhotoGalleryApp < Sinatra::Base
     else
       request.ip
     end
+  end
+
+  def get_photo_details(id)
+    task = GenerationTask[id.to_i]
+
+    if task.nil?
+      return {error: "Generation task not found for ID #{id}"}
+    end
+
+    # Safely parse parameters JSON
+    parameters = {}
+    if task.parameters && !task.parameters.empty? && task.parameters != "{}"
+      begin
+        parameters = JSON.parse(task.parameters)
+      rescue JSON::ParserError
+        # If JSON parsing fails, just return empty hash
+        parameters = {}
+      end
+    end
+
+    # Safely parse EXIF data JSON
+    exif_data = {}
+    if task.exif_data && !task.exif_data.empty? && task.exif_data != "{}"
+      begin
+        exif_data = JSON.parse(task.exif_data)
+      rescue JSON::ParserError
+        # If JSON parsing fails, just return empty hash
+        exif_data = {}
+      end
+    end
+
+    # Construct the photo path
+    dir = task.file_path
+    date_path = dir.gsub(/^db\/photos\//, "")
+    photo_path = File.join(date_path, task.output_filename) if task.output_filename
+
+    return {
+      photo_path: photo_path,
+      task: {
+        output_filename: task.output_filename,
+        status: task.status,
+        username: task.username || task.user_id,
+        workflow_type: task.workflow_type || "Unknown",
+        queued_at: task.queued_at ? task.queued_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
+        started_at: task.started_at ? task.started_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
+        completed_at: task.completed_at ? task.completed_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
+        processing_time_seconds: task.processing_time_seconds,
+        prompt: task.prompt,
+        parameters: parameters,
+        exif_data: exif_data,
+        error_message: task.error_message,
+        comfyui_prompt_id: task.comfyui_prompt_id
+      }
+    }
   end
 
   post "/api/broadcast" do

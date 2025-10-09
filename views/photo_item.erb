@@ -1,0 +1,46 @@
+<div
+  class="fade-in relative overflow-hidden rounded-lg bg-white shadow-lg transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800"
+>
+  <a
+    href="/photo-details/<%= id %>"
+    data-turbo-frame="photo-modal-frame"
+    class="block cursor-pointer no-underline"
+  >
+    <% if is_video(photo) %>
+      <video src="/photos/<%= photo %>" class="block h-64 w-full object-cover" autoplay muted loop ></video>
+    <% else %>
+      <img src="/photos/<%= photo %>" alt="<%= get_filename(photo) %>" class="block h-64 w-full object-cover" />
+    <% end %>
+    <div class="p-4">
+      <div class="mb-1 break-words font-bold text-gray-800 dark:text-gray-200">
+        <%= get_filename(photo) %>
+      </div>
+      <div class="break-words text-sm text-gray-600 dark:text-gray-400">
+        <%= photo %>
+      </div>
+    </div>
+  </a>
+  <button
+    type="button"
+    data-turbo="false"
+    data-photo-path="/photos/<%= photo %>"
+    class="photo-copy absolute right-2 top-2 z-10 rounded-full bg-white/80 p-2 text-gray-800 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-lg dark:bg-gray-800/80 dark:text-gray-200 dark:hover:bg-gray-800"
+    aria-label="Copy image URL to clipboard"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="h-5 w-5"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+  </button>
+</div>

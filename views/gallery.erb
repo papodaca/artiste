@@ -1,0 +1,31 @@
+<div class="mx-auto max-w-6xl p-5">
+  <!-- WebSocket connection status indicator - Upper right -->
+  <div
+    class="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-lg bg-white p-2 text-xs shadow-lg dark:bg-gray-800"
+  >
+    <div class="h-2 w-2 rounded-full bg-gray-500" id="connection-status-dot"></div>
+    <span class="text-gray-600 dark:text-gray-400" id="connection-status-text">
+      Disconnected
+    </span>
+  </div>
+
+  <h1
+    class="mb-8 flex items-center justify-center gap-3 text-center text-3xl font-bold text-gray-800 dark:text-gray-200"
+  >
+    <img src="/images/artiste.png" alt="Artiste" class="h-12 w-12 rounded-full object-cover" />
+    Artiste
+  </h1>
+
+  <% if photos.empty? %>
+    <div class="mt-12 text-center italic text-gray-600 dark:text-gray-400">No photos found.</div>
+  <% else %>
+    <%= erb :grid, locals: { photos: , offset: PHOTO_BATCH_SIZE, limit: PHOTO_BATCH_SIZE, has_more: photos.length == limit, has_id: true } %>
+  <% end %>
+</div>
+
+<!-- Turbo Frame for photo details modal -->
+<turbo-frame id="photo-modal-frame">
+  <% if params[:detail] %>
+    <%= erb :photo_details, layout: false, locals: {photo_details: photo_details, error: photo_details[:error], frame: false} %>
+  <% end %>
+</turbo-frame>

@@ -162,6 +162,7 @@ class GenerationTask < Sequel::Model(:generation_tasks)
 
   def to_h
     {
+      id: self.id,
       output_filename: self.output_filename,
       username: self.username,
       workflow_type: self.workflow_type,

@@ -1,0 +1,220 @@
+<% if frame %><turbo-frame id="photo-modal-frame"><% end %>
+  <div class="fixed inset-0 z-50" id="photo-modal">
+    <div
+      class="absolute inset-0 bg-black/50 backdrop-blur-sm fade-in"
+      aria-hidden="true"
+      onclick="closePhotoModal()"
+    ></div>
+    <div class="fixed inset-0 overflow-y-auto fade-in">
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div
+          class="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800"
+        >
+          <div class="p-6">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Photo Details</h2>
+              <button
+                type="button"
+                onclick="closePhotoModal()"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                aria-label="close"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <% if photo_details %>
+              <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                <div class="text-center">
+                  <% if is_video(photo_details[:photo_path]) %>
+                    <video
+                      src="/photos/<%= photo_details[:photo_path] %>"
+                      class="h-auto max-w-full rounded-lg shadow-lg"
+                      autoplay
+                      muted
+                      loop
+                    ></video>
+                  <% else %>
+                    <img
+                      src="/photos/<%= photo_details[:photo_path] %>"
+                      alt="<%= photo_details[:task][:output_filename] %>"
+                      class="h-auto max-w-full rounded-lg shadow-lg"
+                    />
+                  <% end %>
+                </div>
+
+                <div class="lg:pl-5">
+                  <div class="mb-6">
+                    <h3
+                      class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                    >
+                      Basic Information
+                    </h3>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Filename:</span
+                      >
+                      <span class="break-words text-gray-800 dark:text-gray-200"
+                        ><%= photo_details[:task][:output_filename] %></span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Status:</span
+                      >
+                      <span class="rounded px-2 py-1 text-sm font-bold uppercase <%= get_status_class(photo_details[:task][:status]) %>"
+                        ><%= photo_details[:task][:status] %></span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >User:</span
+                      >
+                      <span class="break-words text-gray-800 dark:text-gray-200"
+                        ><%= photo_details[:task][:username] || 'Unknown' %></span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Workflow Type:</span
+                      >
+                      <span class="break-words text-gray-800 dark:text-gray-200"
+                        ><%= photo_details[:task][:workflow_type] %></span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="mb-6">
+                    <h3
+                      class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                    >
+                      Timing
+                    </h3>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Completed At:</span
+                      >
+                      <span class="break-words text-gray-800 dark:text-gray-200"
+                        ><%= format_date(photo_details[:task][:completed_at]) %></span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Processing Time:</span
+                      >
+                      <span class="break-words text-gray-800 dark:text-gray-200"
+                        ><%= format_processing_time(photo_details[:task][:processing_time_seconds]) %></span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="mb-6">
+                    <h3
+                      class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                    >
+                      Prompt
+                    </h3>
+                    <div
+                      class="break-words rounded bg-gray-50 p-4 font-mono text-sm dark:bg-gray-700 dark:text-gray-200"
+                    >
+                      <%= escape_html(photo_details[:task][:prompt] || 'N/A') %>
+                    </div>
+                  </div>
+
+                  <% if !format_json(photo_details[:task][:parameters]).empty? %>
+                    <div class="mb-6">
+                      <h3
+                        class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                      >
+                        Generation Parameters
+                      </h3>
+                      <div
+                        class="overflow-x-auto rounded bg-gray-50 p-4 font-mono text-sm dark:bg-gray-700 dark:text-gray-200"
+                      >
+                        <pre><%= format_json(photo_details[:task][:parameters]) %></pre>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <% if !format_json(photo_details[:task][:exif_data]).empty? %>
+                    <div class="mb-6">
+                      <h3
+                        class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                      >
+                        EXIF Data
+                      </h3>
+                      <div
+                        class="overflow-x-auto rounded bg-gray-50 p-4 font-mono text-sm dark:bg-gray-700 dark:text-gray-200"
+                      >
+                        <pre><%= format_json(photo_details[:task][:exif_data]) %></pre>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <% if photo_details[:task][:error_message] %>
+                    <div class="mb-6">
+                      <h3
+                        class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                      >
+                        Error
+                      </h3>
+                      <div
+                        class="rounded border border-red-200 bg-red-100 p-4 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
+                      >
+                        <%= escape_html(photo_details[:task][:error_message]) %>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <% if photo_details[:task][:comfyui_prompt_id] %>
+                    <div class="mb-6">
+                      <h3
+                        class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
+                      >
+                        Technical Details
+                      </h3>
+                      <div class="mb-3">
+                        <span
+                          class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                          >Prompt ID:</span
+                        >
+                        <span class="break-words text-gray-800 dark:text-gray-200"
+                          ><%= photo_details[:task][:comfyui_prompt_id] %></span
+                        >
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% else %>
+              <div
+                class="rounded border border-red-200 bg-red-100 p-4 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200"
+              >
+                Error loading photo details: <%= escape_html(error) %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<%if frame %></turbo-frame><% end %>

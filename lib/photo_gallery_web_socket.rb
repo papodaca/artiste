@@ -2,6 +2,8 @@ require "websocket-eventmachine-server"
 require "json"
 require "net/http"
 require "uri"
+require "tilt/erb"
+require "sinatra/base"
 
 class PhotoGalleryWebSocket
   class << self
@@ -82,24 +84,61 @@ class PhotoGalleryWebSocket
 
     def notify_new_photo(photo_path, task_data = nil)
       rel_path = photo_path.gsub(/^db\/photos\//, "")
+      photo_id = task_data&.dig("id") || task_data&.dig(:id)
+      
+      rendered_content = render_photo_item_stream(rel_path, photo_id)
+      
       message = {
         type: "new_photo",
         photo_path: rel_path,
         photo_url: "/photos/#{rel_path}",
-        task: task_data
+        task: task_data,
+        html: rendered_content
       }
       broadcast(message)
     end
 
     def notify_photo_updated(photo_path, task_data = nil)
       rel_path = photo_path.gsub(/^db\/photos\//, "")
+      photo_id = task_data&.dig("id") || task_data&.dig(:id)
+      
+      rendered_content = render_photo_item_stream(rel_path, photo_id)
+      
       message = {
         type: "photo_updated",
         photo_path: rel_path,
         photo_url: "/photos/#{rel_path}",
-        task: task_data
+        task: task_data,
+        html: rendered_content
       }
       broadcast(message)
+    end
+
+    def render_photo_item_stream(photo_path, photo_id)
+      # Render the ERB template
+      template = Tilt::ERBTemplate.new(File.join(File.dirname(__FILE__), "..", "views", "photo_item_stream.erb"))
+      
+      # Create a context object with helper methods
+      context = Object.new
+      class << context
+        include Sinatra::Helpers
+        
+        def erb(template_name, options = {})
+          template_path = File.join(File.dirname(__FILE__), "..", "views", "#{template_name}.erb")
+          Tilt::ERBTemplate.new(template_path).render(self, options[:locals] || {})
+        end
+        
+        def get_filename(path)
+          path.split("/").last
+        end
+        
+        def is_video(path)
+          path.downcase.end_with?(".mp4")
+        end
+      end
+      
+      # Render the template with the required locals
+      template.render(context, photo_path: photo_path, photo_id: photo_id)
     end
 
     private

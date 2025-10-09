@@ -82,8 +82,8 @@ EM.run do
           header_rules: [[:all, {"Cache-Control" => "public, max-age=86400"}]]
       end
 
-      frontend_dist_path = File.join(File.dirname(__FILE__), "frontend", "dist")
-      use Rack::Static, urls: ["/assets"], root: frontend_dist_path,
+      assets_path = File.join(File.dirname(__FILE__), "assets")
+      use Rack::Static, urls: ["/images", "/styles", "/javascript"], root: assets_path,
         header_rules: [[:all, {"Cache-Control" => "public, max-age=3600"}]]
 
       map "/" do

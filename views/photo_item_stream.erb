@@ -1,0 +1,6 @@
+<turbo-stream action="prepend" target="photo-grid">
+  <template>
+    <%= erb :photo_item, locals: { photo: photo_path, id: photo_id } %>
+    <script>attachImageClicks();</script>
+  </template>
+</turbo-stream>
