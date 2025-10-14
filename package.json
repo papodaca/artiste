@@ -1,0 +1,16 @@
+{
+  "name": "artiste",
+  "version": "1.0.0",
+  "repository": "git@github.com:papodaca/artiste.git",
+  "author": "Ethan Apodaca <papodaca@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "bun build:css -m",
+    "build:css": "tailwindcss -i ./assets/styles/app.css -o ./assets/styles/app.dist.css",
+    "dev": "bun build:css --watch"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.14",
+    "tailwindcss": "^4.1.14"
+  }
+}

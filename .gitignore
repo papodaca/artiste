@@ -1,3 +1,5 @@
 .env
 volumes
 db
+node_modules
+app.dist.css

@@ -37,22 +37,17 @@ def debug_log(message)
   puts "[DEBUG] #{Time.now.strftime("%Y-%m-%d %H:%M:%S")} - #{message}" if DEBUG_MODE
 end
 
-# Spawn yarn dev process if --dev flag is used
-yarn_dev_pid = nil
+bun_dev_pid = nil
 if options[:dev]
-  frontend_dir = File.join(File.dirname(__FILE__), "frontend")
-  debug_log("Starting yarn dev in #{frontend_dir}")
-
-  # Start yarn dev in a subprocess
-  yarn_dev_pid = Process.spawn("yarn dev", chdir: frontend_dir)
-  debug_log("Started yarn dev with PID #{yarn_dev_pid}")
+  bun_dev_pid = Process.spawn("bun dev")
+  debug_log("Started yarn dev with PID #{bun_dev_pid}")
 
   # Set up a trap to clean up the yarn dev process on exit
   at_exit do
-    if yarn_dev_pid
-      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
-      Process.kill("TERM", yarn_dev_pid)
-      Process.wait(yarn_dev_pid)
+    if bun_dev_pid
+      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
+      Process.kill("TERM", bun_dev_pid)
+      Process.wait(bun_dev_pid)
     end
   end
 end
@@ -100,10 +95,10 @@ EM.run do
   Signal.trap("INT") do
     debug_log("Received INT signal, shutting down...")
     # Terminate yarn dev process if it's running
-    if yarn_dev_pid
-      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
-      Process.kill("TERM", yarn_dev_pid)
-      Process.wait(yarn_dev_pid)
+    if bun_dev_pid
+      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
+      Process.kill("TERM", bun_dev_pid)
+      Process.wait(bun_dev_pid)
     end
     server.stop if defined?(server) && server
     EM.stop
@@ -112,10 +107,10 @@ EM.run do
   Signal.trap("TERM") do
     debug_log("Received TERM signal, shutting down...")
     # Terminate yarn dev process if it's running
-    if yarn_dev_pid
-      debug_log("Terminating yarn dev process (PID #{yarn_dev_pid})")
-      Process.kill("TERM", yarn_dev_pid)
-      Process.wait(yarn_dev_pid)
+    if bun_dev_pid
+      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
+      Process.kill("TERM", bun_dev_pid)
+      Process.wait(bun_dev_pid)
     end
     server.stop if defined?(server) && server
     EM.stop

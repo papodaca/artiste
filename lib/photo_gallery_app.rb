@@ -130,6 +130,18 @@ class PhotoGalleryApp < Sinatra::Base
     limit = PHOTO_BATCH_SIZE
     photos = get_photos(offset:, limit:)
     photo_details = params.has_key?(:detail) ? get_photo_details(params[:detail]) : nil
+
+    # Handle presets parameter
+    if params.has_key?(:presets)
+      begin
+        @presets = Preset.order(:name).all
+        @presets_error = nil
+      rescue => e
+        @presets = nil
+        @presets_error = "Error loading presets: #{e.message}"
+      end
+    end
+
     erb :gallery, layout: :layout, locals: {photos:, offset:, limit:, photo_details:}
   end
 
@@ -151,7 +163,7 @@ class PhotoGalleryApp < Sinatra::Base
     content_type :html
 
     begin
-      redirect to("/?detail=#{params[:id]}") unless request.env["HTTP_ACCEPT"]&.include?("text/vnd.turbo-stream.html")
+      redirect to("/?detail=#{params[:id]}") unless request.env["HTTP_TURBO_FRAME"].present?
 
       photo_details = get_photo_details(params[:id])
       if photo_details.has_key?(:error)
@@ -290,6 +302,26 @@ class PhotoGalleryApp < Sinatra::Base
       puts "Error processing broadcast: #{e.message}"
       status 500
       {error: "Internal server error"}.to_json
+    end
+  end
+
+  # Presets modal route
+  get "/presets" do
+    content_type :html
+
+    begin
+      presets = Preset.order(:name).all
+
+      redirect to("/?presets=true") unless request.env["HTTP_TURBO_FRAME"].present?
+
+      erb :presets_details, layout: false, locals: {presets: presets, error: nil, frame: true}
+    rescue => e
+      # Log the error for debugging
+      puts "Error in /presets: #{e.class.name}: #{e.message}"
+      puts e.backtrace.join("\n")
+
+      error = "Internal server error: #{e.class.name}: #{e.message}"
+      erb :presets_details, layout: false, locals: {presets: nil, error: error, frame: true}
     end
   end
 

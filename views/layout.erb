@@ -5,13 +5,19 @@
   <link rel="icon" type="image/png" href="/images/artiste.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Artiste</title>
-  <script src="https://unpkg.com/@hotwired/turbo@8.0.18/dist/turbo.es2017-umd.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/styles/app.css">
-  <script src="/javascript/app.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.545.0/font/lucide.min.css" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "@hotwired/stimulus": "https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/+esm",
+      "@hotwired/turbo": "https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.18/+esm"
+    }
+  }
+  </script>
+  <link rel="stylesheet" href="/styles/app.dist.css">
+  <script src="/javascript/app.js" type="module"></script>
 </head>
 <body>
   <%= yield %>
-
 </body>
 </html>

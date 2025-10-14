@@ -1,11 +1,8 @@
-<div class="infinite-scroll-container grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" <% if has_id %> id="photo-grid" <% end %>>
+<div class="infinite-scroll-container grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" <% if has_id %> id="photo-grid" <% end %> data-controller="infinite-scroll">
   <% photos.each do |photo| %>
     <%= erb :photo_item, locals: { photo: photo[:path], id: photo[:id] } %>
   <% end %>
+  <% if has_more %>
+  <div id="load-more-trigger" data-infinite-scroll-target="trigger" data-offset="<%= offset %>" data-limit="<%= limit %>" class="w-full h-1"></div>
+  <% end %>
 </div>
-<% if has_more %>
-<div id="load-more-trigger" data-offset="<%= offset %>" data-limit="<%= limit %>" class="w-full h-1"></div>
-<% end %>
-<script>
-  document.addEventListener('turbo:load', () => attachImageClicks());
-</script>

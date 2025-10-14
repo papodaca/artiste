@@ -27,7 +27,7 @@ class ComfyuiHttpClient
     end
   end
 
-  # Check the status of a prompt
+# Check the status of a prompt
   def get_prompt_status(prompt_id)
     response = self.class.get("/history/#{prompt_id}")
 

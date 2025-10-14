@@ -17,7 +17,7 @@ GEM
     ast (2.4.3)
     base64 (0.3.0)
     benchmark (0.4.1)
-    bigdecimal (3.3.0)
+    bigdecimal (3.3.1)
     coderay (1.1.3)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.4)
@@ -80,7 +80,7 @@ GEM
     oj (3.16.11)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
-    openai (0.30.0)
+    openai (0.31.0)
       connection_pool
     opus-ruby (1.0.1)
       ffi
@@ -89,13 +89,13 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
-    prism (1.5.1)
+    prism (1.5.2)
     pry (0.15.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
     racc (1.8.1)
-    rack (3.2.2)
-    rack-protection (4.2.0)
+    rack (3.2.3)
+    rack-protection (4.2.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
       rack (>= 3.0.0, < 4)
@@ -150,11 +150,11 @@ GEM
     securerandom (0.4.1)
     sequel (5.97.0)
       bigdecimal
-    sinatra (4.2.0)
+    sinatra (4.2.1)
       logger (>= 1.6.0)
       mustermann (~> 3.0)
       rack (>= 3.0.0, < 4)
-      rack-protection (= 4.2.0)
+      rack-protection (= 4.2.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
     sqlite3 (2.7.4-aarch64-linux-gnu)
@@ -223,6 +223,7 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport
+  base64
   discordrb
   eventmachine
   factory_bot

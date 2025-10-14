@@ -3,17 +3,15 @@
     <% photos.each do |photo| %>
       <%= erb :photo_item, locals: { photo: photo[:path], id: photo[:id] } %>
     <% end %>
-    <script>attachImageClicks();</script>
   </template>
 </turbo-stream>
 
-<% if has_more %>
-<turbo-stream action="replace" target="load-more-trigger">
-  <template>
-    <div id="load-more-trigger" data-offset="<%= offset + limit %>" data-limit="<%= limit %>" class="w-full h-1"></div>
-  </template>
-</turbo-stream>
-<% else %>
 <turbo-stream action="remove" target="load-more-trigger">
+</turbo-stream>
+<% if has_more %>
+<turbo-stream action="append" target="photo-grid">
+  <template>
+    <div id="load-more-trigger" data-infinite-scroll-target="trigger" data-offset="<%= offset + limit %>" data-limit="<%= limit %>" class="w-full h-1"></div>
+  </template>
 </turbo-stream>
 <% end %>

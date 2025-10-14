@@ -1,12 +1,23 @@
-<div class="mx-auto max-w-6xl p-5">
+<div class="mx-auto max-w-6xl p-5" data-controller="websocket">
   <!-- WebSocket connection status indicator - Upper right -->
   <div
     class="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-lg bg-white p-2 text-xs shadow-lg dark:bg-gray-800"
   >
-    <div class="h-2 w-2 rounded-full bg-gray-500" id="connection-status-dot"></div>
-    <span class="text-gray-600 dark:text-gray-400" id="connection-status-text">
+    <div class="h-2 w-2 rounded-full bg-gray-500" data-websocket-target="statusDot"></div>
+    <span class="text-gray-600 dark:text-gray-400" data-websocket-target="statusText">
       Disconnected
     </span>
+  </div>
+
+  <!-- Presets link - Below connection status -->
+  <div class="fixed right-4 top-16 z-40">
+    <a href="/presets"
+       data-turbo-frame="presets-modal-frame"
+       class="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+    >
+      <div class="icon-file-badge"></div>
+      <span class="text-gray-600 dark:text-gray-400">Presets</span>
+    </a>
   </div>
 
   <h1
@@ -23,9 +34,22 @@
   <% end %>
 </div>
 
-<!-- Turbo Frame for photo details modal -->
-<turbo-frame id="photo-modal-frame">
-  <% if params[:detail] %>
-    <%= erb :photo_details, layout: false, locals: {photo_details: photo_details, error: photo_details[:error], frame: false} %>
-  <% end %>
-</turbo-frame>
+<!-- Modal controllers wrapper - persistent element outside turbo frames -->
+<div data-controller="modal" data-modal-query-param-value="detail">
+  <!-- Turbo Frame for photo details modal -->
+  <turbo-frame id="photo-modal-frame" data-modal-target="frame">
+    <% if params[:detail] %>
+      <%= erb :photo_details, layout: false, locals: {photo_details: photo_details, error: photo_details[:error], frame: false} %>
+    <% end %>
+  </turbo-frame>
+</div>
+
+<!-- Modal controllers wrapper - persistent element outside turbo frames -->
+<div data-controller="modal" data-modal-query-param-value="presets">
+  <!-- Turbo Frame for presets modal -->
+  <turbo-frame id="presets-modal-frame" data-modal-target="frame">
+    <% if params[:presets] %>
+      <%= erb :presets_details, layout: false, locals: {presets: @presets, error: @presets_error, frame: false} %>
+    <% end %>
+  </turbo-frame>
+</div>
