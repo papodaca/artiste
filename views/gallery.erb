@@ -33,23 +33,9 @@
     <%= erb :grid, locals: { photos: , offset: PHOTO_BATCH_SIZE, limit: PHOTO_BATCH_SIZE, has_more: photos.length == limit, has_id: true } %>
   <% end %>
 </div>
-
-<!-- Modal controllers wrapper - persistent element outside turbo frames -->
 <div data-controller="modal" data-modal-query-param-value="detail">
-  <!-- Turbo Frame for photo details modal -->
-  <turbo-frame id="photo-modal-frame" data-modal-target="frame">
-    <% if params[:detail] %>
-      <%= erb :photo_details, layout: false, locals: {photo_details: photo_details, error: photo_details[:error], frame: false} %>
-    <% end %>
-  </turbo-frame>
+  <turbo-frame id="photo-modal-frame" data-modal-target="frame" <% if params[:detail] %> src="<%= "/photo-details/#{params[:detail]}" %>" <% end %> />
 </div>
-
-<!-- Modal controllers wrapper - persistent element outside turbo frames -->
 <div data-controller="modal" data-modal-query-param-value="presets">
-  <!-- Turbo Frame for presets modal -->
-  <turbo-frame id="presets-modal-frame" data-modal-target="frame">
-    <% if params[:presets] %>
-      <%= erb :presets_details, layout: false, locals: {presets: @presets, error: @presets_error, frame: false} %>
-    <% end %>
-  </turbo-frame>
+  <turbo-frame id="presets-modal-frame" data-modal-target="frame" <% if params[:presets] %> src="/presets" <% end %> />
 </div>

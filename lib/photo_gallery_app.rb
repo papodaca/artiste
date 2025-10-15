@@ -167,10 +167,10 @@ class PhotoGalleryApp < Sinatra::Base
 
       photo_details = get_photo_details(params[:id])
       if photo_details.has_key?(:error)
-        return erb :photo_details, layout: false, locals: {photo_details: nil, error: photo_details[:error], frame: true}
+        return erb :photo_details, layout: false, locals: {photo_details: nil, error: photo_details[:error]}
       end
 
-      erb :photo_details, layout: false, locals: {photo_details: photo_details, error: nil, frame: true}
+      erb :photo_details, layout: false, locals: {photo_details: photo_details, error: nil}
     rescue => e
       # Log the error for debugging
       puts "Error in /photo-details/: #{e.class.name}: #{e.message}"
@@ -314,14 +314,14 @@ class PhotoGalleryApp < Sinatra::Base
 
       redirect to("/?presets=true") unless request.env["HTTP_TURBO_FRAME"].present?
 
-      erb :presets_details, layout: false, locals: {presets: presets, error: nil, frame: true}
+      erb :presets_details, layout: false, locals: {presets: presets, error: nil}
     rescue => e
       # Log the error for debugging
       puts "Error in /presets: #{e.class.name}: #{e.message}"
       puts e.backtrace.join("\n")
 
       error = "Internal server error: #{e.class.name}: #{e.message}"
-      erb :presets_details, layout: false, locals: {presets: nil, error: error, frame: true}
+      erb :presets_details, layout: false, locals: {presets: nil, error: error}
     end
   end
 
