@@ -1,9 +1,3 @@
-require "open-uri"
-require "base64"
-require "httparty"
-require "tempfile"
-require "mini_magick"
-
 class EditCommand < BaseCommand
   def self.parse(prompt)
     # Parse the prompt using PromptParameterParser

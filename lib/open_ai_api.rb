@@ -1,7 +1,4 @@
-require "json"
-require "securerandom"
-
-class OpenAIAPI < Sinatra::Base
+class OpenAiApi < Sinatra::Base
   configure do
     set :threaded, false
 

@@ -1,10 +1,3 @@
-require "websocket-eventmachine-server"
-require "json"
-require "net/http"
-require "uri"
-require "tilt/erb"
-require "sinatra/base"
-
 class PhotoGalleryWebSocket
   class << self
     def connections

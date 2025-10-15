@@ -7,6 +7,7 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 gem "activesupport", require: "active_support/all"
 gem "base64"
 gem "discordrb"
+gem "dotenv", require: false
 gem "eventmachine"
 gem "httparty"
 gem "mini_magick"

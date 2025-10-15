@@ -33,6 +33,7 @@ GEM
     discordrb-webhooks (3.5.0)
       rest-client (>= 2.0.0)
     domain_name (0.6.20240107)
+    dotenv (3.1.8)
     drb (2.2.3)
     event_emitter (0.2.6)
     eventmachine (1.2.7)
@@ -123,7 +124,7 @@ GEM
     rspec-expectations (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.5)
+    rspec-mocks (3.13.6)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.6)
@@ -225,6 +226,7 @@ DEPENDENCIES
   activesupport
   base64
   discordrb
+  dotenv
   eventmachine
   factory_bot
   httparty

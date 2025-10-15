@@ -1,14 +1,3 @@
-#!/usr/bin/env ruby
-
-require "sinatra/base"
-require "pathname"
-require "base64"
-require "json"
-require "cgi"
-require "date"
-require_relative "openai_api"
-require_relative "photo_gallery_web_socket"
-
 class PhotoGalleryApp < Sinatra::Base
   # Set up the web server
   set :port, 4567
@@ -275,7 +264,7 @@ class PhotoGalleryApp < Sinatra::Base
         parameters: parameters,
         exif_data: exif_data,
         error_message: task.error_message,
-        comfyui_prompt_id: task.comfyui_prompt_id
+        prompt_id: task.prompt_id
       }
     }
   end
@@ -326,5 +315,5 @@ class PhotoGalleryApp < Sinatra::Base
   end
 
   # Register the OpenAI API middleware
-  use OpenAIAPI
+  use OpenAiApi
 end

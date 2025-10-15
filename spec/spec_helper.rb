@@ -14,7 +14,7 @@
 #
 # See https://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 ENV["RACK_ENV"] = "test"
-require_relative("../config/environment")
+require_relative "../config/environment"
 Bundler.require(:default, :test)
 
 RSpec.configure do |config|

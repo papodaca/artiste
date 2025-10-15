@@ -1,18 +1,14 @@
-require "fileutils"
-
 class ImageGenerationClient
   # Static factory method to create the appropriate client
   def self.create
     client_type = ENV.fetch("ARTISTE_IMAGE_GENERATION", "comfyui").downcase
     case client_type
     when "comfyui"
-      require_relative "comfyui_client"
       ComfyuiClient.new(
         ENV.fetch("COMFYUI_URL", "http://localhost:8188"),
         ENV["COMFYUI_TOKEN"]
       )
     when "chutes"
-      require_relative "chutes_client"
       ChutesClient.new(
         ENV["CHUTES_TOKEN"]
       )

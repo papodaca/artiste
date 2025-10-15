@@ -1,5 +1,4 @@
 require "spec_helper"
-require_relative "../../lib/comfyui_client"
 
 RSpec.describe ComfyuiClient do
   let(:comfyui_url) { "http://localhost:8188" }

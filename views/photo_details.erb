@@ -171,7 +171,7 @@
                     </div>
                   <% end %>
 
-                  <% if photo_details[:task][:comfyui_prompt_id] %>
+                  <% if photo_details[:task][:prompt_id] %>
                     <div class="mb-6">
                       <h3
                         class="mb-3 mt-0 border-b-2 border-gray-200 pb-1 text-xl text-gray-800 dark:border-gray-600 dark:text-gray-200"
@@ -184,7 +184,7 @@
                           >Prompt ID:</span
                         >
                         <span class="break-words text-gray-800 dark:text-gray-200"
-                          ><%= photo_details[:task][:comfyui_prompt_id] %></span
+                          ><%= photo_details[:task][:prompt_id] %></span
                         >
                       </div>
                     </div>

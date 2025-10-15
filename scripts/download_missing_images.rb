@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
-
-require "fileutils"
 require_relative "../config/environment"
-require_relative "../config/database"
 
 class MissingImageDownloader
   def initialize

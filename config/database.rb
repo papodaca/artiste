@@ -1,6 +1,3 @@
-require 'sequel'
-require 'fileutils'
-
 DB_PATH = File.expand_path(ENV["RACK_ENV"] =="test" ? "../db/artiste_test.db" : "../db/artiste.db", __dir__)
 FileUtils.mkdir_p(File.dirname(DB_PATH))
 DB = Sequel.sqlite(DB_PATH)
@@ -24,7 +21,7 @@ DB.create_table? :generation_tasks do
   Text :parameters # JSON string of generation parameters
   Text :exif_data, default: '{}' # JSON string of EXIF data
   String :workflow_type # flux, qwen, etc.
-  String :comfyui_prompt_id # ComfyUI's prompt ID for tracking
+  String :prompt_id # ComfyUI's prompt ID for tracking
   String :output_filename
   Text :error_message # Error details if generation fails
   TrueClass :private, default: false # Flag for private images

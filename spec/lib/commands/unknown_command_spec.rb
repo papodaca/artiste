@@ -1,5 +1,4 @@
 require "spec_helper"
-require_relative "../../../lib/commands/unknown_command"
 
 describe UnknownCommand do
   let(:server_strategy) { instance_double("MattermostServerStrategy") }

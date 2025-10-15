@@ -1,6 +1,3 @@
-require "fileutils"
-require "json"
-
 class MattermostServerStrategy < ServerStrategy
   def initialize(*args, **kwargs)
     @mattermost_url = kwargs[:mattermost_url]

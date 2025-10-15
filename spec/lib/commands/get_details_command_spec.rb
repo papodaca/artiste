@@ -17,7 +17,7 @@ RSpec.describe GetDetailsCommand do
           username: "testuser",
           status: "completed",
           workflow_type: "flux",
-          comfyui_prompt_id: "prompt-456",
+          prompt_id: "prompt-456",
           output_filename: "test_image.png",
           prompt: "A beautiful landscape",
           parameters: '{"width":1024,"height":1024}',
@@ -34,7 +34,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "test_image.png").and_return([task])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "test_image.png").and_return([])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "test_image.png").and_return([])
         allow(mattermost).to receive(:respond)
       end
 
@@ -58,7 +58,7 @@ RSpec.describe GetDetailsCommand do
       end
     end
 
-    context "when generation task is found by comfyui prompt id" do
+    context "when generation task is found by prompt id" do
       let(:parsed_result) { {type: :get_details, image_name: "prompt-456"} }
       let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
       let(:task) do
@@ -69,7 +69,7 @@ RSpec.describe GetDetailsCommand do
           username: "testuser",
           status: "completed",
           workflow_type: "flux",
-          comfyui_prompt_id: "prompt-456",
+          prompt_id: "prompt-456",
           output_filename: "test_image.png",
           prompt: "A beautiful landscape",
           parameters: nil,
@@ -86,7 +86,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "prompt-456").and_return([])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "prompt-456").and_return([task])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "prompt-456").and_return([task])
         allow(mattermost).to receive(:respond)
       end
 
@@ -107,7 +107,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "nonexistent.png").and_return([])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "nonexistent.png").and_return([])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "nonexistent.png").and_return([])
         allow(mattermost).to receive(:respond)
       end
 
@@ -132,7 +132,7 @@ RSpec.describe GetDetailsCommand do
           username: "testuser",
           status: "failed",
           workflow_type: "flux",
-          comfyui_prompt_id: "prompt-789",
+          prompt_id: "prompt-789",
           output_filename: "failed_image.png",
           prompt: "A beautiful landscape",
           parameters: nil,
@@ -149,7 +149,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "failed_image.png").and_return([task])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "failed_image.png").and_return([])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "failed_image.png").and_return([])
         allow(mattermost).to receive(:respond)
       end
 
@@ -175,7 +175,7 @@ RSpec.describe GetDetailsCommand do
           username: "testuser",
           status: "completed",
           workflow_type: "flux",
-          comfyui_prompt_id: "prompt-456",
+          prompt_id: "prompt-456",
           output_filename: "test_image.png",
           prompt: "A beautiful landscape",
           parameters: nil,
@@ -192,7 +192,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "test_image.png").and_return([task])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "test_image.png").and_return([])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "test_image.png").and_return([])
         allow(mattermost).to receive(:respond)
       end
 
@@ -217,7 +217,7 @@ RSpec.describe GetDetailsCommand do
           username: "testuser",
           status: "completed",
           workflow_type: "flux",
-          comfyui_prompt_id: "prompt-456",
+          prompt_id: "prompt-456",
           output_filename: "test_image.png",
           prompt: "A beautiful landscape",
           parameters: nil,
@@ -234,7 +234,7 @@ RSpec.describe GetDetailsCommand do
 
       before do
         allow(GenerationTask).to receive(:where).with(output_filename: "test_image.png").and_return([task])
-        allow(GenerationTask).to receive(:where).with(comfyui_prompt_id: "test_image.png").and_return([])
+        allow(GenerationTask).to receive(:where).with(prompt_id: "test_image.png").and_return([])
         allow(mattermost).to receive(:respond)
       end
 

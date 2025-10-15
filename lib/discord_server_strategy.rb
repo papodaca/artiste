@@ -1,5 +1,3 @@
-require "json"
-
 class DiscordServerStrategy < ServerStrategy
   def initialize(*args, **kwargs)
     @discord_token = kwargs[:discord_token]

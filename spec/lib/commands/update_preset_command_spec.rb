@@ -1,5 +1,4 @@
 require "spec_helper"
-require_relative "../../../config/database"
 
 RSpec.describe UpdatePresetCommand do
   let(:mattermost) { instance_double("MattermostServerStrategy") }

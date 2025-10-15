@@ -1,5 +1,4 @@
 require "spec_helper"
-require_relative "../../lib/chutes_http_client"
 
 RSpec.describe ChutesHttpClient do
   let(:base_url) { "https://image.chutes.ai" }

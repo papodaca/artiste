@@ -1,6 +1,4 @@
 require "spec_helper"
-require "json"
-require "base64"
 
 # Test the OpenAI API functionality
 describe "OpenAI API" do

@@ -1,11 +1,4 @@
-require "fileutils"
-require "base64"
 
-MODEL_MAP = {
-  "flux" => "FLUX.1-schnell",
-  "qwen-image" => "qwen-image",
-  "qwen-image-edit" => "qwen-image-edit"
-}
 
 class ChutesClient < ImageGenerationClient
   attr_reader :http_client

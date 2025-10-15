@@ -1,5 +1,4 @@
 require "spec_helper"
-require_relative "../../lib/chutes_client"
 
 RSpec.describe ChutesClient do
   let(:token) { "test-token" }

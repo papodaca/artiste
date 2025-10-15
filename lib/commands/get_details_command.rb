@@ -11,7 +11,7 @@ class GetDetailsCommand < BaseCommand
     debug_log("Looking up details for image: #{image_name}")
 
     # Look up generation task by output filename
-    task = GenerationTask.where(output_filename: image_name).first || GenerationTask.where(comfyui_prompt_id: image_name).first
+    task = GenerationTask.where(output_filename: image_name).first || GenerationTask.where(prompt_id: image_name).first
 
     if task.nil?
       debug_log("No generation task found for image: #{image_name}")
@@ -72,9 +72,9 @@ class GetDetailsCommand < BaseCommand
     end
 
     # ComfyUI details
-    if task.comfyui_prompt_id
+    if task.prompt_id
       details_text << "**Info:**"
-      details_text << "• Prompt ID: #{task.comfyui_prompt_id}"
+      details_text << "• Prompt ID: #{task.prompt_id}"
       details_text << ""
     end
 

@@ -1,6 +1,3 @@
-require "fileutils"
-require "cgi"
-
 class ComfyuiClient < ImageGenerationClient
   attr_reader :http_client
 

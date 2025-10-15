@@ -1,5 +1,4 @@
 require "spec_helper"
-require "json"
 
 RSpec.describe GenerateCommand do
   let(:mattermost) { instance_double("MattermostServerStrategy") }
