@@ -71,7 +71,7 @@ class GetDetailsCommand < BaseCommand
       details_text << ""
     end
 
-    # ComfyUI details
+    # Prompt details
     if task.prompt_id
       details_text << "**Info:**"
       details_text << "• Prompt ID: #{task.prompt_id}"

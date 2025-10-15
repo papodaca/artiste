@@ -2,6 +2,13 @@ DB_PATH = File.expand_path(ENV["RACK_ENV"] =="test" ? "../db/artiste_test.db" : 
 FileUtils.mkdir_p(File.dirname(DB_PATH))
 DB = Sequel.sqlite(DB_PATH)
 
+# Migration: Rename comfyui_prompt_id to prompt_id if the column exists
+if DB.table_exists?(:generation_tasks) && DB[:generation_tasks].columns.include?(:comfyui_prompt_id)
+  DB.alter_table(:generation_tasks) do
+    rename_column :comfyui_prompt_id, :prompt_id
+  end
+end
+
 # Create user_settings table if it doesn't exist
 DB.create_table? :user_settings do
   primary_key :id
@@ -21,7 +28,7 @@ DB.create_table? :generation_tasks do
   Text :parameters # JSON string of generation parameters
   Text :exif_data, default: '{}' # JSON string of EXIF data
   String :workflow_type # flux, qwen, etc.
-  String :prompt_id # ComfyUI's prompt ID for tracking
+  String :prompt_id # Prompt ID for tracking
   String :output_filename
   Text :error_message # Error details if generation fails
   TrueClass :private, default: false # Flag for private images
@@ -129,18 +136,18 @@ class GenerationTask < Sequel::Model(:generation_tasks)
     self.save
   end
   
-  def mark_processing(comfyui_prompt_id = nil)
+  def mark_processing(prompt_id = nil)
     self.status = 'processing'
     self.started_at = Time.now
-    self.comfyui_prompt_id = comfyui_prompt_id if comfyui_prompt_id.present?
+    self.prompt_id = prompt_id if prompt_id.present?
     self.save
   end
   
-  def mark_completed(output_filename = nil, comfyui_prompt_id = nil)
+  def mark_completed(output_filename = nil, prompt_id = nil)
     self.status = 'completed'
     self.completed_at = Time.now
     self.output_filename = output_filename if output_filename
-    self.comfyui_prompt_id = comfyui_prompt_id if comfyui_prompt_id.present?
+    self.prompt_id = prompt_id if prompt_id.present?
     if self.started_at
       self.processing_time_seconds = (Time.now - self.started_at).to_f
     end

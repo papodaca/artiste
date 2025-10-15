@@ -10,7 +10,7 @@ RSpec.describe GenerateCommand do
   let(:command) { described_class.new(mattermost, message, parsed_result, user_settings, false) }
   let(:discord_command) { described_class.new(discord, discord_message, parsed_result, user_settings, false) }
   let(:reply) { {"id" => "reply-id"} }
-  let(:generation_task) { double("GenerationTask", id: 1, username: "testuser", prompt: "a beautiful sunset", workflow_type: "flux", status: "pending", private: false, file_path: "db/photos/test", output_filename: "test.png", completed_at: Time.now, comfyui_prompt_id: nil, to_h: {}) }
+  let(:generation_task) { double("GenerationTask", id: 1, username: "testuser", prompt: "a beautiful sunset", workflow_type: "flux", status: "pending", private: false, file_path: "db/photos/test", output_filename: "test.png", completed_at: Time.now, prompt_id: nil, to_h: {}) }
 
   before do
     # Mock PromptParameterParser
@@ -21,7 +21,8 @@ RSpec.describe GenerateCommand do
     allow(GenerationTask).to receive(:create).and_return(generation_task)
     allow(generation_task).to receive(:mark_processing)
     allow(generation_task).to receive(:mark_completed)
-    allow(generation_task).to receive(:comfyui_prompt_id=)
+    allow(generation_task).to receive(:prompt_id=)
+    allow(generation_task).to receive(:prompt_id)
     allow(generation_task).to receive(:save)
     allow(generation_task).to receive(:set_exif_data)
     allow(generation_task).to receive(:mark_failed)
@@ -172,7 +173,7 @@ RSpec.describe GenerateCommand do
         end
 
         it "handles progress callbacks" do
-          expect(generation_task).to receive(:comfyui_prompt_id=).with("prompt-id")
+          expect(generation_task).to receive(:prompt_id=).with("prompt-id")
           expect(generation_task).to receive(:save)
           expect(generation_task).to receive(:mark_processing)
           expect(mattermost).to receive(:update).with(message, reply, "🎨 Generating image... This may take a few minutes.")

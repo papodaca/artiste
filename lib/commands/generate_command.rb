@@ -69,10 +69,10 @@ class GenerateCommand < BaseCommand
 
     # Generate image using the appropriate client
     if image_generation_client.is_a?(ComfyuiClient)
-      result = image_generation_client.generate_and_wait(final_params, 1.hour.seconds.to_i) do |kind, comfyui_prompt_id, progress|
-        if comfyui_prompt_id.present? && comfyui_prompt_id != generation_task.comfyui_prompt_id
-          debug_log("Setting the generation task's comfyui_prompt_id to #{comfyui_prompt_id}")
-          generation_task.comfyui_prompt_id = comfyui_prompt_id
+      result = image_generation_client.generate_and_wait(final_params, 1.hour.seconds.to_i) do |kind, prompt_id, progress|
+        if prompt_id.present? && prompt_id != generation_task.prompt_id
+          debug_log("Setting the generation task's prompt_id to #{prompt_id}")
+          generation_task.prompt_id = prompt_id
           generation_task.save
         end
         if kind == :running
@@ -109,8 +109,8 @@ class GenerateCommand < BaseCommand
       PhotoGalleryWebSocket.notify_new_photo(filepath, generation_task.to_h)
     end
 
-    if generation_task.comfyui_prompt_id.nil? && result.has_key?(:prompt_id)
-      generation_task.comfyui_prompt_id = result[:prompt_id]
+    if generation_task.prompt_id.nil? && result.has_key?(:prompt_id)
+      generation_task.prompt_id = result[:prompt_id]
       generation_task.save
     end
 

@@ -32,7 +32,7 @@ class HelpCommand < BaseCommand
       
       /get_settings - Display current default settings
       
-      /details <image_name|comfyui_prompt_id> - Show generation details for a specific image
+      /details <image_name|prompt_id> - Show generation details for a specific image
         Example: /details output_20241230_123456.png
 
       /text <text prompt> [options]

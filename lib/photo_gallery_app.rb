@@ -252,6 +252,7 @@ class PhotoGalleryApp < Sinatra::Base
     return {
       photo_path: photo_path,
       task: {
+        id: task.id,
         output_filename: task.output_filename,
         status: task.status,
         username: task.username || task.user_id,
