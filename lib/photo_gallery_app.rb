@@ -3,6 +3,12 @@ class PhotoGalleryApp < Sinatra::Base
   set :port, 4567
   set :bind, "0.0.0.0"
 
+  # Enable sessions
+  enable :sessions
+  session_secret = ENV["SESSION_SECRET"]
+  raise StandardError.new("ENV SESSION_SECRET not set") if session_secret.nil?
+  set :session_secret, session_secret
+
   attr_reader :photos_path
 
   # Default batch size for infinite scrolling
@@ -36,7 +42,15 @@ class PhotoGalleryApp < Sinatra::Base
   # Helper method to get all completed photos from the database
   def get_photos(offset: 0, limit: nil)
     # Get all completed generation tasks, ordered by completed_at in descending order (newest first)
-    tasks = GenerationTask.pub.reverse_order(:completed_at)
+    tasks = if current_user.authenticated?
+      # For authenticated users: get public tasks + their private tasks
+      GenerationTask.where(status: "completed").where(
+        Sequel.|({private: false}, {private: true, user_id: current_user.user_id})
+      ).reverse_order(:completed_at)
+    else
+      # For non-authenticated users: only public tasks
+      GenerationTask.pub.reverse_order(:completed_at)
+    end
 
     # Build photo data from task data
     photos = tasks.map do |task|
@@ -48,6 +62,7 @@ class PhotoGalleryApp < Sinatra::Base
       # Combine with output filename
       if task.output_filename
         {
+          is_private: task.send(:private),
           path: File.join(date_path, task.output_filename),
           id: task.id
         }
@@ -249,17 +264,18 @@ class PhotoGalleryApp < Sinatra::Base
     date_path = dir.gsub(/^db\/photos\//, "")
     photo_path = File.join(date_path, task.output_filename) if task.output_filename
 
-    return {
+    {
       photo_path: photo_path,
       task: {
         id: task.id,
         output_filename: task.output_filename,
         status: task.status,
+        private: task.send(:private),
         username: task.username || task.user_id,
         workflow_type: task.workflow_type || "Unknown",
-        queued_at: task.queued_at ? task.queued_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
-        started_at: task.started_at ? task.started_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
-        completed_at: task.completed_at ? task.completed_at.strftime("%Y-%m-%d %H:%M:%S") : nil,
+        queued_at: task.queued_at&.strftime("%Y-%m-%d %H:%M:%S"),
+        started_at: task.started_at&.strftime("%Y-%m-%d %H:%M:%S"),
+        completed_at: task.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
         processing_time_seconds: task.processing_time_seconds,
         prompt: task.prompt,
         parameters: parameters,
@@ -282,7 +298,10 @@ class PhotoGalleryApp < Sinatra::Base
       # Parse the JSON request body
       request_body = JSON.parse(request.body.read)
 
-      PhotoGalleryWebSocket.local_broadcast(request_body)
+      # Extract target_user_id if present
+      target_user_id = request_body.delete("target_user_id")
+
+      PhotoGalleryWebSocket.local_broadcast(request_body, target_user_id)
 
       {status: "ok", message: "Broadcast successful"}.to_json
     rescue JSON::ParserError
@@ -312,6 +331,81 @@ class PhotoGalleryApp < Sinatra::Base
 
       error = "Internal server error: #{e.class.name}: #{e.message}"
       erb :presets_details, layout: false, locals: {presets: nil, error: error}
+    end
+  end
+
+  # OAuth authentication routes
+  get "/auth/login" do
+    # Generate and store CSRF state token
+    state = UserAuth.generate_state_token
+    UserAuth.store_oauth_state(session, state)
+
+    # Initialize OAuth strategy and redirect to authorization URL
+    oauth_strategy = ::MattermostOAuthStrategy.new
+    authorize_url = oauth_strategy.authorize_url(state: state)
+
+    redirect authorize_url
+  end
+
+  get "/auth/callback" do
+    # Verify state parameter to prevent CSRF
+    state = params[:state]
+    code = params[:code]
+
+    if !state || !UserAuth.verify_state_token(session, state)
+      status 400
+      return "Invalid state parameter. Authentication failed."
+    end
+
+    if !code
+      status 400
+      return "Authorization code not provided. Authentication failed."
+    end
+
+    # Exchange authorization code for access token
+    oauth_strategy = MattermostOAuthStrategy.new
+    access_token_data = oauth_strategy.get_access_token(code)
+
+    if !access_token_data || access_token_data[:access_token].nil?
+      status 500
+      return "Failed to obtain access token. Authentication failed."
+    end
+
+    # Get user information
+    user_info = oauth_strategy.get_user_info(access_token_data[:access_token])
+
+    if !user_info
+      status 500
+      return "Failed to obtain user information. Authentication failed."
+    end
+
+    # Authenticate user
+    if UserAuth.authenticate(session, access_token_data, user_info)
+      # Clear OAuth state and redirect to home
+      UserAuth.clear_oauth_state(session)
+      redirect to("/")
+    else
+      status 500
+      return "Failed to authenticate user. Authentication failed."
+    end
+  end
+
+  get "/auth/logout" do
+    UserAuth.logout(session)
+    redirect to("/")
+  end
+
+  # Helper method to get current user authentication
+  def current_user
+    @current_user ||= UserAuth.new(session)
+  end
+
+  # Authentication helper for protected routes
+  def authenticate!
+    unless current_user.authenticated?
+      # Store the requested URL to redirect after login
+      session[:return_to] = request.fullpath
+      redirect to("/auth/login")
     end
   end
 

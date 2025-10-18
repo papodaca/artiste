@@ -1,24 +1,53 @@
 <div class="mx-auto max-w-6xl p-5" data-controller="websocket">
-  <!-- WebSocket connection status indicator - Upper right -->
-  <div
-    class="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-lg bg-white p-2 text-xs shadow-lg dark:bg-gray-800"
-  >
-    <div class="h-2 w-2 rounded-full bg-gray-500" data-websocket-target="statusDot"></div>
-    <span class="text-gray-600 dark:text-gray-400" data-websocket-target="statusText">
-      Disconnected
-    </span>
-  </div>
+  <!-- Fixed right sidebar with all controls -->
+  <ul class="fixed right-4 top-4 z-50 flex flex-col gap-2 list-none m-0 p-0">
+    <!-- WebSocket connection status indicator -->
+    <li class="flex items-center justify-between rounded-lg bg-white p-2 text-xs shadow-lg dark:bg-gray-800">
+      <div class="h-2 w-2 rounded-full bg-gray-500 mr-2 ml-2" data-websocket-target="statusDot"></div>
+      <span class="text-gray-600 dark:text-gray-400 mr-1" data-websocket-target="statusText">
+        Disconnected
+      </span>
+    </li>
 
-  <!-- Presets link - Below connection status -->
-  <div class="fixed right-4 top-16 z-40">
-    <a href="/presets"
-       data-turbo-frame="presets-modal-frame"
-       class="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
-    >
-      <div class="icon-file-badge"></div>
-      <span class="text-gray-600 dark:text-gray-400">Presets</span>
-    </a>
-  </div>
+    <!-- Authentication status -->
+    <% if current_user.authenticated? %>
+      <li class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-lg dark:bg-gray-800">
+        <div class="icon-user mr-2"></div>
+        <span class="text-gray-600 dark:text-gray-400">
+          <%= current_user.user_info["display_name"] || current_user.user_info["username"] %>
+        </span>
+      </li>
+      <li>
+        <a href="/auth/logout"
+           data-turbo="false"
+           class="flex items-center justify-between rounded-lg bg-red-500 px-3 py-2 text-xs text-white shadow-lg hover:bg-red-600"
+        >
+          <div class="icon-log-out mr-2"></div>
+          <span>Logout</span>
+        </a>
+      </li>
+    <% else %>
+      <li>
+        <a href="/auth/login"
+           class="flex items-center justify-between rounded-lg bg-blue-500 px-3 py-2 text-xs text-white shadow-lg hover:bg-blue-600"
+        >
+          <div class="icon-log-in mr-2"></div>
+          <span>Login</span>
+        </a>
+      </li>
+    <% end %>
+
+    <!-- Presets link -->
+    <li>
+      <a href="/presets"
+         data-turbo-frame="presets-modal-frame"
+         class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+      >
+        <div class="icon-file-badge mr-2"></div>
+        <span class="text-gray-600 dark:text-gray-400">Presets</span>
+      </a>
+    </li>
+  </ul>
 
   <h1
     class="mb-8 flex items-center justify-center gap-3 text-center text-3xl font-bold text-gray-800 dark:text-gray-200"

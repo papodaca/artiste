@@ -76,6 +76,17 @@
                         ><%= photo_details[:task][:status] %></span
                       >
                     </div>
+                    <% if photo_details[:task][:private] %>
+                    <div class="mb-3">
+                      <span
+                        class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"
+                        >Private:</span
+                      >
+                      <span class="rounded px-2 py-1 text-sm font-bold uppercase <%= get_status_class(photo_details[:task][:private]) %>"
+                        ><%= photo_details[:task][:private] %></span
+                      >
+                    </div>
+                    <% end %>
                     <div class="mb-3">
                       <span
                         class="inline-block min-w-[140px] font-bold text-gray-600 dark:text-gray-400"

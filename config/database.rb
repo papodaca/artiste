@@ -169,8 +169,10 @@ class GenerationTask < Sequel::Model(:generation_tasks)
       id: self.id,
       output_filename: self.output_filename,
       username: self.username,
+      user_id: self.user_id,
       workflow_type: self.workflow_type,
       completed_at: self.completed_at&.strftime("%Y-%m-%d %H:%M:%S"),
+      private: self.send(:private),
       prompt: self.prompt
     }
   end

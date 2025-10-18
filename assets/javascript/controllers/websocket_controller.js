@@ -102,16 +102,16 @@ export default class extends Controller {
     if (!this.hasStatusDotTarget || !this.hasStatusTextTarget) return;
 
     if (this.statusValue === 'connected') {
-      this.statusDotTarget.className = 'h-2 w-2 rounded-full bg-green-500';
+      this.statusDotTarget.className = 'h-2 w-2 mr-2 ml-2 rounded-full bg-green-500';
       this.statusTextTarget.textContent = 'Live';
     } else if (this.statusValue === 'connecting') {
-      this.statusDotTarget.className = 'h-2 w-2 rounded-full bg-yellow-500';
+      this.statusDotTarget.className = 'h-2 w-2 mr-2 ml-2 rounded-full bg-yellow-500';
       this.statusTextTarget.textContent = 'Connecting...';
     } else if (this.statusValue === 'error') {
-      this.statusDotTarget.className = 'h-2 w-2 rounded-full bg-red-500';
+      this.statusDotTarget.className = 'h-2 w-2 mr-2 ml-2 rounded-full bg-red-500';
       this.statusTextTarget.textContent = 'Connection Error';
     } else {
-      this.statusDotTarget.className = 'h-2 w-2 rounded-full bg-gray-500';
+      this.statusDotTarget.className = 'h-2 w-2 mr-2 ml-2 rounded-full bg-gray-500';
       this.statusTextTarget.textContent = 'Disconnected';
     }
   }

@@ -10,3 +10,7 @@ application.register("copy", CopyController);
 application.register("websocket", WebSocketController);
 application.register("infinite-scroll", InfiniteScrollController);
 application.register("modal", ModalController);
+
+if (window.location.search.includes('preset') || window.location.search.includes('detail')) {
+  document.body.attributes.style.value = "position: fixed; width: 100%; overflow: hidden;"
+}

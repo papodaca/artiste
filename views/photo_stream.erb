@@ -1,7 +1,7 @@
 <turbo-stream action="append" target="photo-grid">
   <template>
     <% photos.each do |photo| %>
-      <%= erb :photo_item, locals: { photo: photo[:path], id: photo[:id] } %>
+      <%= erb :photo_item, locals: photo %>
     <% end %>
   </template>
 </turbo-stream>

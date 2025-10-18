@@ -1,22 +1,22 @@
 <div
-  class="fade-in relative overflow-hidden rounded-lg bg-white shadow-lg transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800"
+  class="fade-in relative overflow-hidden rounded-lg <%= is_private ? "border-2 border-blue-500 " : "" %> bg-white shadow-lg transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800 dark:border-blue-400"
 >
   <a
     href="/photo-details/<%= id %>"
     data-turbo-frame="photo-modal-frame"
     class="block cursor-pointer no-underline"
   >
-    <% if is_video(photo) %>
-      <video src="/photos/<%= photo %>" class="block h-64 w-full object-cover" autoplay muted loop ></video>
+    <% if is_video(path) %>
+      <video src="/photos/<%= path %>" class="block h-64 w-full object-cover" autoplay muted loop ></video>
     <% else %>
-      <img src="/photos/<%= photo %>" alt="<%= get_filename(photo) %>" class="block h-64 w-full object-cover" />
+      <img src="/photos/<%= path %>" alt="<%= get_filename(path) %>" class="block h-64 w-full object-cover" />
     <% end %>
     <div class="p-4">
       <div class="mb-1 break-words font-bold text-gray-800 dark:text-gray-200">
-        <%= get_filename(photo) %>
+        <%= get_filename(path) %>
       </div>
       <div class="break-words text-sm text-gray-600 dark:text-gray-400">
-        <%= photo %>
+        <%= path %>
       </div>
     </div>
   </a>
@@ -24,7 +24,7 @@
     type="button"
     data-turbo="false"
     data-controller="copy"
-    data-copy-photo-path-value="/photos/<%= photo %>"
+    data-copy-photo-path-value="/photos/<%= path %>"
     data-action="click->copy#copy"
     class="absolute size-10 right-2 top-2 z-10 rounded-full bg-white/50 p-2 text-gray-800 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-lg dark:bg-gray-800/50 dark:text-gray-200 dark:hover:bg-gray-800"
     aria-label="Copy image URL to clipboard"
