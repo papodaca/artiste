@@ -1,6 +1,3 @@
-require 'securerandom'
-require 'json'
-
 class UserAuth
   attr_reader :session, :user_info, :access_token
 
@@ -28,12 +25,12 @@ class UserAuth
 
     # Get or create user settings
     user_settings = UserSettings.get_or_create_for_user(
-      user_info['id'],
-      user_info['username']
+      user_info["id"],
+      user_info["username"]
     )
 
     # Update user settings with latest info
-    user_settings.username = user_info['username']
+    user_settings.username = user_info["username"]
     user_settings.save
 
     true
@@ -46,25 +43,25 @@ class UserAuth
 
   # Get current user ID
   def user_id
-    @user_info ? @user_info['id'] : nil
+    @user_info ? @user_info["id"] : nil
   end
 
   # Get current username
   def username
-    @user_info ? @user_info['username'] : nil
+    @user_info ? @user_info["username"] : nil
   end
 
   # Get user display name
   def display_name
     return nil unless @user_info
-    @user_info['first_name'] && @user_info['last_name'] ? 
-      "#{@user_info['first_name']} #{@user_info['last_name']}" : 
-      @user_info['username']
+    (@user_info["first_name"] && @user_info["last_name"]) ?
+      "#{@user_info["first_name"]} #{@user_info["last_name"]}" :
+      @user_info["username"]
   end
 
   # Get user email
   def email
-    @user_info ? @user_info['email'] : nil
+    @user_info ? @user_info["email"] : nil
   end
 
   # Check if token needs refresh
@@ -102,10 +99,23 @@ class UserAuth
   # Check if user can access a resource
   def can_access?(resource_user_id)
     return false unless authenticated?
+    return true if admin?
     # Users can access their own resources
     return true if user_id == resource_user_id
     # Add additional permission logic here if needed
     false
+  end
+
+  # Check if user is an admin
+  def admin?
+    return false unless authenticated?
+    return false unless user_id
+
+    admin_ids = ENV["ARTISTE_ADMINS"]
+    return false unless admin_ids
+
+    # Split comma-separated list and check if current user ID is included
+    admin_ids.split(",").map(&:strip).include?(user_id.to_s)
   end
 
   # Generate CSRF token for OAuth state

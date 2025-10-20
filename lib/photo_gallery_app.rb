@@ -4,6 +4,7 @@ class PhotoGalleryApp < Sinatra::Base
   set :bind, "0.0.0.0"
 
   # Enable sessions
+  use Rack::Protection
   enable :sessions
   session_secret = ENV["SESSION_SECRET"]
   raise StandardError.new("ENV SESSION_SECRET not set") if session_secret.nil?
@@ -41,16 +42,45 @@ class PhotoGalleryApp < Sinatra::Base
 
   # Helper method to get all completed photos from the database
   def get_photos(offset: 0, limit: nil)
-    # Get all completed generation tasks, ordered by completed_at in descending order (newest first)
-    tasks = if current_user.authenticated?
-      # For authenticated users: get public tasks + their private tasks
-      GenerationTask.where(status: "completed").where(
-        Sequel.|({private: false}, {private: true, user_id: current_user.user_id})
-      ).reverse_order(:completed_at)
+    # Get query parameters
+    show_deleted = params[:show_deleted] == "true"
+    show_private = params[:show_private] == "true"
+
+    # Start with base query for completed tasks
+    tasks = GenerationTask.where(status: "completed")
+
+    # Apply filters based on user permissions and query parameters
+    if current_user.authenticated?
+      if current_user.admin?
+        # Admin users can see everything based on query parameters
+        if !show_deleted
+          tasks = tasks.where(deleted_at: nil)
+        end
+
+        tasks = if !show_private
+          # Hide other users' private items, show own private items
+          tasks.where(
+            Sequel.|({private: false}, {private: true, user_id: current_user.user_id})
+          )
+        else
+          tasks.where(
+            Sequel.|({private: false}, {private: true})
+          )
+        end
+      else
+        # Regular authenticated users: public tasks + their private tasks
+        tasks = tasks.where(
+          Sequel.|({private: false}, {private: true, user_id: current_user.user_id})
+        )
+        # Never show deleted items to non-admin users
+        tasks = tasks.where(deleted_at: nil)
+      end
     else
-      # For non-authenticated users: only public tasks
-      GenerationTask.pub.reverse_order(:completed_at)
+      # Non-authenticated users: only public tasks, never deleted
+      tasks = tasks.where(private: false, deleted_at: nil)
     end
+
+    tasks = tasks.reverse_order(:completed_at)
 
     # Build photo data from task data
     photos = tasks.map do |task|
@@ -63,8 +93,11 @@ class PhotoGalleryApp < Sinatra::Base
       if task.output_filename
         {
           is_private: task.send(:private),
+          is_deleted: task.deleted_at.present?,
           path: File.join(date_path, task.output_filename),
-          id: task.id
+          id: task.id,
+          owner_id: task.user_id,
+          username: task.username || task.user_id
         }
       end
     end.compact # Remove any nil entries
@@ -314,6 +347,186 @@ class PhotoGalleryApp < Sinatra::Base
     end
   end
 
+  # Delete selected photos route
+  post "/api/photos/delete" do
+    authenticate!
+    content_type :json
+
+    begin
+      request_body = JSON.parse(request.body.read)
+      photo_ids = request_body["photo_ids"]
+
+      if photo_ids.nil? || !photo_ids.is_a?(Array) || photo_ids.empty?
+        status 400
+        return {error: "Invalid photo IDs"}.to_json
+      end
+
+      deleted_count = 0
+      errors = []
+
+      photo_ids.each do |photo_id|
+        task = GenerationTask[photo_id.to_i]
+
+        if task.nil?
+          errors << "Photo #{photo_id} not found"
+          next
+        end
+
+        # Check if user owns this task or is admin
+        unless current_user.can_access?(task.user_id)
+          errors << "Permission denied for photo #{photo_id}"
+          next
+        end
+
+        # Soft delete the generation task record
+        task.soft_delete
+        deleted_count += 1
+      rescue => e
+        errors << "Error deleting photo #{photo_id}: #{e.message}"
+      end
+
+      response = {
+        success: true,
+        deleted_count: deleted_count,
+        total_requested: photo_ids.length
+      }
+
+      if errors.any?
+        response[:errors] = errors
+      end
+
+      response.to_json
+    rescue JSON::ParserError
+      status 400
+      {error: "Invalid JSON"}.to_json
+    rescue => e
+      puts "Error processing delete request: #{e.message}"
+      puts e.backtrace.join("\n")
+      status 500
+      {error: "Internal server error"}.to_json
+    end
+  end
+
+  # Make photos private route
+  post "/api/photos/make-private" do
+    authenticate!
+    content_type :json
+
+    begin
+      request_body = JSON.parse(request.body.read)
+      photo_ids = request_body["photo_ids"]
+
+      if photo_ids.nil? || !photo_ids.is_a?(Array) || photo_ids.empty?
+        status 400
+        return {error: "Invalid photo IDs"}.to_json
+      end
+
+      updated_count = 0
+      errors = []
+
+      photo_ids.each do |photo_id|
+        task = GenerationTask[photo_id.to_i]
+
+        if task.nil?
+          errors << "Photo #{photo_id} not found"
+          next
+        end
+
+        # Check if user owns this task or is admin
+        unless current_user.can_access?(task.user_id)
+          errors << "Permission denied for photo #{photo_id}"
+          next
+        end
+
+        # Update the task to be private
+        task.update(private: true)
+        updated_count += 1
+      rescue => e
+        errors << "Error updating photo #{photo_id}: #{e.message}"
+      end
+
+      response = {
+        success: true,
+        updated_count: updated_count,
+        total_requested: photo_ids.length
+      }
+
+      if errors.any?
+        response[:errors] = errors
+      end
+
+      response.to_json
+    rescue JSON::ParserError
+      status 400
+      {error: "Invalid JSON"}.to_json
+    rescue => e
+      puts "Error processing make-private request: #{e.message}"
+      puts e.backtrace.join("\n")
+      status 500
+      {error: "Internal server error"}.to_json
+    end
+  end
+
+  # Make photos public route
+  post "/api/photos/make-public" do
+    authenticate!
+    content_type :json
+
+    begin
+      request_body = JSON.parse(request.body.read)
+      photo_ids = request_body["photo_ids"]
+
+      if photo_ids.nil? || !photo_ids.is_a?(Array) || photo_ids.empty?
+        status 400
+        return {error: "Invalid photo IDs"}.to_json
+      end
+
+      updated_count = 0
+      errors = []
+
+      photo_ids.each do |photo_id|
+        task = GenerationTask[photo_id.to_i]
+
+        if task.nil?
+          errors << "Photo #{photo_id} not found"
+          next
+        end
+
+        # Check if user owns this task or is admin
+        unless current_user.can_access?(task.user_id)
+          errors << "Permission denied for photo #{photo_id}"
+          next
+        end
+
+        # Update the task to be public
+        task.update(private: false)
+        updated_count += 1
+      rescue => e
+        errors << "Error updating photo #{photo_id}: #{e.message}"
+      end
+
+      response = {
+        success: true,
+        updated_count: updated_count,
+        total_requested: photo_ids.length
+      }
+
+      if errors.any?
+        response[:errors] = errors
+      end
+
+      response.to_json
+    rescue JSON::ParserError
+      status 400
+      {error: "Invalid JSON"}.to_json
+    rescue => e
+      puts "Error processing make-public request: #{e.message}"
+      puts e.backtrace.join("\n")
+      status 500
+      {error: "Internal server error"}.to_json
+    end
+  end
+
   # Presets modal route
   get "/presets" do
     content_type :html
@@ -411,4 +624,19 @@ class PhotoGalleryApp < Sinatra::Base
 
   # Register the OpenAI API middleware
   use OpenAiApi
+
+  private
+
+  # Helper method to check if current user is an admin
+  def current_user_admin?
+    current_user&.admin?
+  end
+
+  def current_user_authenticated?
+    current_user&.authenticated?
+  end
+
+  def current_user_id
+    current_user&.user_id
+  end
 end

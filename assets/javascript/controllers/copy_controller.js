@@ -10,6 +10,7 @@ export default class extends Controller {
     try {
       const fullUrl = window.location.origin + this.photoPathValue;
       await navigator.clipboard.writeText(fullUrl);
+      const originalHTML = button.innerHTML;
 
       button.innerHTML = '<div class="text-green-600 dark:text-green-500 icon-check"></div>';
       setTimeout(() => {

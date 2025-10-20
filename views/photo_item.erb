@@ -1,6 +1,22 @@
 <div
-  class="fade-in relative overflow-hidden rounded-lg <%= is_private ? "border-2 border-blue-500 " : "" %> bg-white shadow-lg transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800 dark:border-blue-400"
->
+  class="fade-in relative overflow-hidden rounded-lg <%= is_private ? "border-2 border-blue-500 " : "" %>bg-white shadow-lg transition-all duration-200 hover:-translate-y-1 hover:shadow-xl dark:bg-gray-800 dark:border-blue-400 group"
+  data-photo-selection-target="item"
+  data-photo-id="<%= id %>"
+  data-is-deleted="<%= defined?(is_deleted) && is_deleted ? "true" : "false" %>"
+  data-is-private="<%= defined?(is_private) && is_private ? "true" : "false" %>"
+  data-owner-id="<%= defined?(owner_id) ? owner_id : "" %>">
+  <% if current_user_authenticated? %>
+    <div class="selected-overlay absolute inset-0 bg-blue-500 opacity-0 transition-opacity duration-200 pointer-events-none"></div>
+    <div class="absolute left-2 top-2 z-10 opacity-0 group-hover:opacity-100 data-[selected]:opacity-100 transition-opacity duration-200">
+      <input
+        type="checkbox"
+        class="photo-checkbox size-5 rounded border-2 border-gray-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-blue-500"
+        data-action="mousedown->photo-selection#toggleSelection"
+        data-photo-selection-target="checkbox"
+        id="photo_item[<%= id %>].selected"
+      />
+    </div>
+  <% end %>
   <a
     href="/photo-details/<%= id %>"
     data-turbo-frame="photo-modal-frame"
@@ -18,6 +34,11 @@
       <div class="break-words text-sm text-gray-600 dark:text-gray-400">
         <%= path %>
       </div>
+      <% if current_user_admin? && defined?(username) && username && !username.empty? %>
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-500">
+          by <%= username %>
+        </div>
+      <% end %>
     </div>
   </a>
   <button
@@ -31,4 +52,12 @@
   >
     <div class="icon-copy"></div>
   </button>
+  <div class="absolute bottom-2 right-2 z-10 flex gap-1">
+    <% if current_user_admin? && defined?(is_deleted) && is_deleted %>
+      <div class="h-3 w-3 rounded-full bg-red-500 shadow-md" title="Deleted"></div>
+    <% end %>
+    <% if current_user_admin? && defined?(is_private) && is_private && defined?(owner_id) && owner_id != current_user_id %>
+      <div class="h-3 w-3 rounded-full bg-blue-500 shadow-md" title="Private item from another user"></div>
+    <% end %>
+  </div>
 </div>

@@ -55,7 +55,12 @@ export default class extends Controller {
       const offset = this.triggerTarget.dataset.offset || this.offsetValue;
       const limit = this.triggerTarget.dataset.limit || this.limitValue;
 
-      const response = await fetch(`/tasks?offset=${offset}&limit=${limit}`, {
+      const url = new URL(window.location);
+      const params = new URLSearchParams(url.search);
+      params.set('offset', offset);
+      params.set('limit', limit);
+
+      const response = await fetch(`/tasks?${params.toString()}`, {
         headers: {
           'Accept': 'text/vnd.turbo-stream.html'
         }

@@ -2,6 +2,41 @@ require "openssl"
 require "base64"
 
 class PhotoGalleryWebSocket
+  class RenderContext
+    include Sinatra::Helpers
+
+    attr_reader :connection
+
+    def initialize(connection)
+      @connection = connection
+    end
+
+    def erb(template_name, options = {})
+      template_path = File.join(File.dirname(__FILE__), "..", "views", "#{template_name}.erb")
+      Tilt::ERBTemplate.new(template_path).render(self, options[:locals] || {})
+    end
+
+    def get_filename(path)
+      path.split("/").last
+    end
+
+    def is_video(path)
+      path.downcase.end_with?(".mp4")
+    end
+
+    def current_user_admin?
+      ENV["ARTISTE_ADMINS"].split(",").map(&:strip).include?(connection.user_id)
+    end
+
+    def current_user_authenticated?
+      connection.user_id.present?
+    end
+
+    def current_user_id
+      connection.user_id
+    end
+  end
+
   class Connection
     attr_accessor :websocket, :user_id, :session_data
 
@@ -69,14 +104,14 @@ class PhotoGalleryWebSocket
     def local_broadcast(message, target_user_id = nil)
       return if connections.empty?
 
-      message_json = message.is_a?(String) ? message : message.to_json
       connections.each do |conn|
-        # If target_user_id is specified, only send to that user's connections
-        # Otherwise, send to all connections
+        message_text = render_photo_item_stream(message, conn)
+        message_json = {}.merge(message).merge(html: message_text).to_json
         if target_user_id.nil? || conn.user_id == target_user_id
           conn.websocket.send(message_json)
         end
-      rescue
+      rescue => e
+        puts "Error broadcasting message: #{e.message}"
         connections.delete(conn)
       end
     end
@@ -114,14 +149,14 @@ class PhotoGalleryWebSocket
       is_private = task_data&.dig("private") || task_data&.dig(:private)
       user_id = task_data&.dig("user_id") || task_data&.dig(:user_id)
 
-      rendered_content = render_photo_item_stream(rel_path, photo_id, is_private)
-
       message = {
         type: "new_photo",
         photo_path: rel_path,
+        photo_id:,
+        is_private:,
+        user_id:,
         photo_url: "/photos/#{rel_path}",
-        task: task_data,
-        html: rendered_content
+        task: task_data
       }
 
       # If photo is private, only broadcast to the owner
@@ -132,47 +167,19 @@ class PhotoGalleryWebSocket
       end
     end
 
-    def notify_photo_updated(photo_path, task_data = nil)
-      rel_path = photo_path.gsub(/^db\/photos\//, "")
-      photo_id = task_data&.dig("id") || task_data&.dig(:id)
-
-      rendered_content = render_photo_item_stream(rel_path, photo_id)
-
-      message = {
-        type: "photo_updated",
-        photo_path: rel_path,
-        photo_url: "/photos/#{rel_path}",
-        task: task_data,
-        html: rendered_content
-      }
-      broadcast(message)
-    end
-
-    def render_photo_item_stream(photo_path, photo_id, is_private)
-      # Render the ERB template
+    def render_photo_item_stream(message, connection)
       template = Tilt::ERBTemplate.new(File.join(File.dirname(__FILE__), "..", "views", "photo_item_stream.erb"))
+      context = RenderContext.new(connection)
 
-      # Create a context object with helper methods
-      context = Object.new
-      class << context
-        include Sinatra::Helpers
-
-        def erb(template_name, options = {})
-          template_path = File.join(File.dirname(__FILE__), "..", "views", "#{template_name}.erb")
-          Tilt::ERBTemplate.new(template_path).render(self, options[:locals] || {})
-        end
-
-        def get_filename(path)
-          path.split("/").last
-        end
-
-        def is_video(path)
-          path.downcase.end_with?(".mp4")
-        end
-      end
-
-      # Render the template with the required locals
-      template.render(context, photo: {path: photo_path, id: photo_id, is_private:})
+      template.render(
+        context, photo: {
+          path: message[:photo_path],
+          id: message[:photo_id],
+          is_deleted: false,
+          is_private: message[:is_private],
+          owner_id: message[:user_id]
+        }
+      )
     end
 
     private

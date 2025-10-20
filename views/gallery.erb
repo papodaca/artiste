@@ -1,15 +1,73 @@
-<div class="mx-auto max-w-6xl p-5" data-controller="websocket">
-  <!-- Fixed right sidebar with all controls -->
+<div class="mx-auto max-w-6xl p-5" data-controller="websocket photo-selection" data-current-user-id="<%= current_user.user_id if current_user.authenticated? %>">
+  <% if current_user.authenticated? %>
+    <div class="mb-4 flex justify-between items-center">
+      <div class="flex gap-2">
+        <button
+          id="delete-selected-button"
+          class="cursor-pointer bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          data-action="click->photo-selection#deleteSelected"
+          disabled
+        >
+          Delete Selected
+        </button>
+        <div class="flex gap-2">
+          <button
+            class="bg-gray-500 cursor-pointer hover:bg-gray-600 text-white px-3 py-2 rounded-lg shadow-md transition-colors duration-200 text-sm"
+            data-action="click->photo-selection#selectAll"
+          >
+            Select All
+          </button>
+          <button
+            class="bg-gray-500 cursor-pointer hover:bg-gray-600 text-white px-3 py-2 rounded-lg shadow-md transition-colors duration-200 text-sm"
+            data-action="click->photo-selection#deselectAll"
+          >
+            Deselect All
+          </button>
+          <button
+            id="make-private-button"
+            class="bg-purple-500 text-white px-3 py-2 rounded-lg shadow-md transition-colors duration-200 text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+            data-action="click->photo-selection#makePrivate"
+            disabled
+          >
+            Make Private
+          </button>
+          <button
+            id="make-public-button"
+            class="bg-green-500 text-white px-3 py-2 rounded-lg shadow-md transition-colors duration-200 text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+            data-action="click->photo-selection#makePublic"
+            disabled
+          >
+            Make Public
+          </button>
+        </div>
+      </div>
+      <% if current_user_admin? %>
+        <div class="flex gap-4 items-center">
+          <div class="flex items-center gap-2">
+            <label for="show-deleted-toggle" class="text-sm font-medium text-gray-700 dark:text-gray-300">Deleted</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="show-deleted-toggle" class="sr-only peer toggle-switch" data-param="show_deleted" <%= params[:show_deleted] == "true" ? "checked" : "" %>>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="show-private-toggle" class="text-sm font-medium text-gray-700 dark:text-gray-300">Private</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="show-private-toggle" class="sr-only peer toggle-switch" data-param="show_private" <%= params[:show_private] == "true" ? "checked" : "" %>>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
   <ul class="fixed right-4 top-4 z-50 flex flex-col gap-2 list-none m-0 p-0">
-    <!-- WebSocket connection status indicator -->
     <li class="flex items-center justify-between rounded-lg bg-white p-2 text-xs shadow-lg dark:bg-gray-800">
       <div class="h-2 w-2 rounded-full bg-gray-500 mr-2 ml-2" data-websocket-target="statusDot"></div>
       <span class="text-gray-600 dark:text-gray-400 mr-1" data-websocket-target="statusText">
         Disconnected
       </span>
     </li>
-
-    <!-- Authentication status -->
     <% if current_user.authenticated? %>
       <li class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-lg dark:bg-gray-800">
         <div class="icon-user mr-2"></div>
@@ -36,8 +94,6 @@
         </a>
       </li>
     <% end %>
-
-    <!-- Presets link -->
     <li>
       <a href="/presets"
          data-turbo-frame="presets-modal-frame"
@@ -59,7 +115,7 @@
   <% if photos.empty? %>
     <div class="mt-12 text-center italic text-gray-600 dark:text-gray-400">No photos found.</div>
   <% else %>
-    <%= erb :grid, locals: { photos: , offset: PHOTO_BATCH_SIZE, limit: PHOTO_BATCH_SIZE, has_more: photos.length == limit, has_id: true } %>
+    <%= erb :grid, locals: { photos: , offset: PHOTO_BATCH_SIZE, limit: PHOTO_BATCH_SIZE, has_more: photos.length == limit } %>
   <% end %>
 </div>
 <div data-controller="modal" data-modal-query-param-value="detail">
