@@ -10,12 +10,12 @@ RSpec.describe VideoCommand do
 
   before do
     # Set environment variables for testing
-    ENV["CHUTES_API_TOKEN"] = "test-api-token"
+    ENV["CHUTES_TOKEN"] = "test-api-token"
   end
 
   after do
     # Clean up environment variables
-    ENV.delete("CHUTES_API_TOKEN")
+    ENV.delete("CHUTES_TOKEN")
   end
 
   describe "::select_resolution_by_aspect_ratio" do
@@ -434,7 +434,7 @@ RSpec.describe VideoCommand do
       before do
         allow(mattermost).to receive(:respond).and_return(reply)
         allow(mattermost).to receive(:update)
-        ENV.delete("CHUTES_API_TOKEN")
+        ENV.delete("CHUTES_TOKEN")
       end
 
       it "responds with an error message" do
@@ -457,7 +457,7 @@ RSpec.describe VideoCommand do
         expect(mattermost).to receive(:respond).with(message, "🎬 Generating video...").and_return(reply)
 
         # Expect the error response
-        expect(mattermost).to receive(:update).with(message, reply, "❌ Sorry, I encountered an error while generating the video: Chutes API token is not configured. Please set the CHUTES_API_TOKEN environment variable.")
+        expect(mattermost).to receive(:update).with(message, reply, "❌ Sorry, I encountered an error while generating the video: Chutes API token is not configured. Please set the CHUTES_TOKEN environment variable.")
 
         command.execute
       end

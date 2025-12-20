@@ -3,7 +3,7 @@ FileUtils.mkdir_p(File.dirname(DB_PATH))
 DB = Sequel.sqlite(DB_PATH)
 
 # Migration: Rename comfyui_prompt_id to prompt_id if the column exists
-if DB.table_exists?(:generation_tasks) 
+if DB.table_exists?(:generation_tasks)
   if DB[:generation_tasks].columns.include?(:comfyui_prompt_id)
     DB.alter_table(:generation_tasks) do
       rename_column :comfyui_prompt_id, :prompt_id
@@ -231,10 +231,6 @@ class GenerationTask < Sequel::Model(:generation_tasks)
 
   def self.pub
     completed.where(private: false)
-  end
-
-  def self.completed
-    not_deleted.where(status: "completed")
   end
 end
 

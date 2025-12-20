@@ -66,8 +66,12 @@ class ChutesHttpClient
   end
 
   # Generate video from image using Chutes API
-  def generate_image2video(payload)
-    response = self.class.post("https://chutes-wan2-1-14b.chutes.ai/image2video",
+  def generate_image2video(payload, wan_version = "2.1")
+    endpoint = (wan_version == "2.2") ?
+      "https://chutes-wan-2-2-i2v-14b-fast.chutes.ai/generate" :
+      "https://chutes-wan2-1-14b.chutes.ai/image2video"
+
+    response = self.class.post(endpoint,
       body: payload.to_json,
       timeout: 1000 * 1000)
 

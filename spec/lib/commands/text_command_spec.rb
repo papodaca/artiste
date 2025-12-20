@@ -98,6 +98,9 @@ RSpec.describe TextCommand do
     context "when prompt is provided" do
       before do
         allow(mattermost).to receive(:respond).and_return(reply)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return("test_key")
       end
 
       it "calls the OpenAI API and responds with the generated text" do
@@ -158,6 +161,9 @@ RSpec.describe TextCommand do
 
       before do
         allow(mattermost).to receive(:respond)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return("test_key")
       end
 
       it "responds with an error message" do
@@ -175,6 +181,9 @@ RSpec.describe TextCommand do
 
       before do
         allow(mattermost).to receive(:respond)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return("test_key")
       end
 
       it "responds with an error message" do
@@ -190,6 +199,9 @@ RSpec.describe TextCommand do
     context "when API request fails with an error response" do
       before do
         allow(mattermost).to receive(:respond).and_return(reply)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return("test_key")
       end
 
       it "responds with an error message" do
@@ -218,6 +230,9 @@ RSpec.describe TextCommand do
     context "when API request raises an exception" do
       before do
         allow(mattermost).to receive(:respond).and_return(reply)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return("test_key")
       end
 
       it "responds with an error message" do
@@ -238,6 +253,9 @@ RSpec.describe TextCommand do
       before do
         allow(mattermost).to receive(:respond).and_return(reply)
         ENV.delete("OPENAI_API_KEY")
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY_ENV").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_URL").and_return(nil)
+        allow(ENV).to receive(:[]).with("OPENAI_API_KEY").and_return(nil)
       end
 
       it "responds with an error message" do

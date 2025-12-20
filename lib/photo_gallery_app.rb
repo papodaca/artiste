@@ -162,14 +162,25 @@ class PhotoGalleryApp < Sinatra::Base
     CGI.escapeHTML(text.to_s)
   end
 
+  def get_modal_src(params)
+    case params[:modal]
+    when "detail"
+      "/photo-details/#{params[:detail]}" if params[:detail]
+    when "presets"
+      "/presets"
+    when "info"
+      "/info"
+    end
+  end
+
   get "/" do
     offset = 0
     limit = PHOTO_BATCH_SIZE
     photos = get_photos(offset:, limit:)
-    photo_details = params.has_key?(:detail) ? get_photo_details(params[:detail]) : nil
+    photo_details = params[:modal] == "detail" && params[:detail] ? get_photo_details(params[:detail]) : nil
 
-    # Handle presets parameter
-    if params.has_key?(:presets)
+    # Handle presets modal
+    if params[:modal] == "presets"
       begin
         @presets = Preset.order(:name).all
         @presets_error = nil
@@ -200,7 +211,7 @@ class PhotoGalleryApp < Sinatra::Base
     content_type :html
 
     begin
-      redirect to("/?detail=#{params[:id]}") unless request.env["HTTP_TURBO_FRAME"].present?
+      redirect to("/?modal=detail&detail=#{params[:id]}") unless request.env["HTTP_TURBO_FRAME"].present?
 
       photo_details = get_photo_details(params[:id])
       if photo_details.has_key?(:error)
@@ -534,7 +545,7 @@ class PhotoGalleryApp < Sinatra::Base
     begin
       presets = Preset.order(:name).all
 
-      redirect to("/?presets=true") unless request.env["HTTP_TURBO_FRAME"].present?
+      redirect to("/?modal=presets") unless request.env["HTTP_TURBO_FRAME"].present?
 
       erb :presets_details, layout: false, locals: {presets: presets, error: nil}
     rescue => e
@@ -544,6 +555,28 @@ class PhotoGalleryApp < Sinatra::Base
 
       error = "Internal server error: #{e.class.name}: #{e.message}"
       erb :presets_details, layout: false, locals: {presets: nil, error: error}
+    end
+  end
+
+  # Info modal route
+  get "/info" do
+    content_type :html
+
+    begin
+      redirect to("/?modal=info") unless request.env["HTTP_TURBO_FRAME"].present?
+
+      # Get help text from HelpCommand
+      help_command = HelpCommand.new(nil, nil, nil, @debug_mode)
+      help_text = help_command.help_text
+
+      erb :info_details, layout: false, locals: {help_text: help_text, error: nil}
+    rescue => e
+      # Log the error for debugging
+      puts "Error in /info: #{e.class.name}: #{e.message}"
+      puts e.backtrace.join("\n")
+
+      error = "Internal server error: #{e.class.name}: #{e.message}"
+      erb :info_details, layout: false, locals: {help_text: nil, error: error}
     end
   end
 

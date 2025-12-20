@@ -70,11 +70,6 @@ class TextCommand < BaseCommand
   private
 
   def stream_text(prompt, reply, model, has_system_prompt, temperature)
-    # Get API configuration from environment variables
-    api_key = ENV["OPENAI_API_KEY"]
-    api_url = ENV["OPENAI_API_URL"] || "https://api.openai.com/v1"
-
-    # Validate API key
     if api_key.nil? || api_key.strip.empty?
       raise "OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable."
     end
@@ -122,7 +117,23 @@ class TextCommand < BaseCommand
     # Final update to remove the thinking indicator if needed
     server.update(message, reply, response_text) if response_text != ""
   rescue => e
+    require "pry"
+    # binding.pry
     debug_log("Error streaming text: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the text response.")
+  end
+
+  def api_key
+    @api_key ||= if ENV["OPENAI_API_KEY_ENV"].present?
+      ENV[ENV["OPENAI_API_KEY_ENV"]]
+    else
+      ENV["OPENAI_API_KEY"]
+    end
+    @api_key
+  end
+
+  def api_url
+    @api_url ||= ENV["OPENAI_API_URL"] || "https://api.openai.com/v1"
+    @api_url
   end
 end

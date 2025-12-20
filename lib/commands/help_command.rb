@@ -17,11 +17,7 @@ class HelpCommand < BaseCommand
       Example: "a beautiful sunset --ar 16:9 --steps 20 --private"
       
       Available commands:
-      
-      /generate <prompt> [options] - Generate an image based on your prompt
-        Options (same parameters as image generation)
-        Example: /generate a beautiful sunset --ar 16:9 --steps 20 --private
-      
+
       /set_settings [options] - Set default settings for image generation
         Options (same parameters as image generation):
           --delete|-d <key>      Delete a setting (e.g., --delete aspect_ratio)
@@ -53,7 +49,7 @@ class HelpCommand < BaseCommand
           --private|-p              Generate images that are not publicly shared
           --shift|-S <number>       Set shift parameter (for qwen model)
           --steps|-s <number>       Set number of generation steps, more steps more better
-          --width|-w <pixels>      Set image width
+          --width|-w <pixels>       Set image width
         
         You can provide images in multiple ways:
           - Attach images directly to your message
@@ -65,15 +61,16 @@ class HelpCommand < BaseCommand
       
       /video <prompt> [options] - Generate a video based on your prompt or from an image
         Options:
-          --frames|-f <number>     Set number of frames (default: 81)
-          --guidance|-g <number>   Set guidance scale (default: 5.0)
-          --ar|-a <ratio>          Set aspect ratio (e.g., 3:2, 16:9, 1:1)
-          --no|-n                  Set the negative prompt
-          --preset|-P <name>       Apply preset parameters and append preset prompt
-          --<preset_name>          Apply preset directly by name (e.g., --vibrant_colors)
-          --private|-p             Generate videos that are not publicly shared
-          --steps|-s <number>      Set number of generation steps
-          --seed <number>          Set seed for reproducible generation
+          --frames|-f <number>      Set number of frames (default: 81)
+          --guidance|-g <number>    Set guidance scale (default: 5.0)
+          --ar|-a <ratio>           Set aspect ratio (e.g., 3:2, 16:9, 1:1)
+          --no|-n                   Set the negative prompt
+          --preset|-P <name>        Apply preset parameters and append preset prompt
+          --<preset_name>           Apply preset directly by name (e.g., --vibrant_colors)
+          --private|-p              Generate videos that are not publicly shared
+          --steps|-s <number>       Set number of generation steps
+          --seed <number>           Set seed for reproducible generation
+          --wan|-W <2.1|2.2>        Specify the WAN model version, 2.2 requires an image
           --image|-i <url|filename> Specify image URL or filename to convert to video
           --task|-t <id>            Specify task ID of previously generated image to convert to video
         
@@ -98,8 +95,6 @@ class HelpCommand < BaseCommand
       /show_preset <name> - Show details of a specific preset
       /update_preset <name> <prompt> [options] - Update a preset (creator-only)
       /delete_preset <name> - Delete a preset (creator-only)
-      
-      Example: "landscape photo --preset vibrant_colors"
     HELP
   end
 

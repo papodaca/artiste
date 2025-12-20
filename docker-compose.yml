@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:13-alpine
+    image: postgres:18-alpine
     security_opt:
       - no-new-privileges:true
     pids_limit: 100
@@ -9,7 +9,7 @@ services:
       - /tmp
       - /var/run/postgresql
     volumes:
-      - ./volumes/db:/var/lib/postgresql/data
+      - ./volumes/db:/var/lib/postgresql/18/docker
     environment:
       # timezone inside container
       - TZ=UTC
@@ -26,7 +26,7 @@ services:
       - 8065:8065
     depends_on:
       - postgres
-    image: mattermost/mattermost-team-edition:10.11.2
+    image: mattermost/mattermost-team-edition:11.1
     security_opt:
       - no-new-privileges:true
     pids_limit: 200

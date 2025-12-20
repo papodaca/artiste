@@ -95,12 +95,21 @@
       </li>
     <% end %>
     <li>
-      <a href="/presets"
-         data-turbo-frame="presets-modal-frame"
+      <a href="/presets?modal=presets"
+         data-turbo-frame="modal-frame"
          class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
       >
         <div class="icon-file-badge mr-2"></div>
         <span class="text-gray-600 dark:text-gray-400">Presets</span>
+      </a>
+    </li>
+    <li>
+      <a href="/info?modal=info"
+         data-turbo-frame="modal-frame"
+         class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+      >
+        <div class="icon-info mr-2"></div>
+        <span class="text-gray-600 dark:text-gray-400">Info</span>
       </a>
     </li>
   </ul>
@@ -118,9 +127,6 @@
     <%= erb :grid, locals: { photos: , offset: PHOTO_BATCH_SIZE, limit: PHOTO_BATCH_SIZE, has_more: photos.length == limit } %>
   <% end %>
 </div>
-<div data-controller="modal" data-modal-query-param-value="detail">
-  <turbo-frame id="photo-modal-frame" data-modal-target="frame" <% if params[:detail] %> src="<%= "/photo-details/#{params[:detail]}" %>" <% end %> />
-</div>
-<div data-controller="modal" data-modal-query-param-value="presets">
-  <turbo-frame id="presets-modal-frame" data-modal-target="frame" <% if params[:presets] %> src="/presets" <% end %> />
+<div data-controller="modal" data-modal-query-param-value="modal">
+  <turbo-frame id="modal-frame" data-modal-target="frame" <% if modal_src = get_modal_src(params) %> src="<%= modal_src %>" <% end %> />
 </div>

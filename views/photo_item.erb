@@ -18,8 +18,8 @@
     </div>
   <% end %>
   <a
-    href="/photo-details/<%= id %>"
-    data-turbo-frame="photo-modal-frame"
+    href="/photo-details/<%= id %>?modal=detail&detail=<%= id %>"
+    data-turbo-frame="modal-frame"
     class="block cursor-pointer no-underline"
   >
     <% if is_video(path) %>
@@ -54,10 +54,10 @@
   </button>
   <div class="absolute bottom-2 right-2 z-10 flex gap-1">
     <% if current_user_admin? && defined?(is_deleted) && is_deleted %>
-      <div class="h-3 w-3 rounded-full bg-red-500 shadow-md" title="Deleted"></div>
+      <div class="px-2 py-1 rounded-full bg-red-500 shadow-md text-xs text-white font-medium uppercase" title="Deleted">deleted</div>
     <% end %>
     <% if current_user_admin? && defined?(is_private) && is_private && defined?(owner_id) && owner_id != current_user_id %>
-      <div class="h-3 w-3 rounded-full bg-blue-500 shadow-md" title="Private item from another user"></div>
+      <div class="px-2 py-1 rounded-full bg-blue-500 shadow-md text-xs text-white font-medium uppercase" title="Private item from another user">private</div>
     <% end %>
   </div>
 </div>

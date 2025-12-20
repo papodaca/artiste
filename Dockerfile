@@ -6,7 +6,7 @@ COPY . .
 RUN bun install --production \
   && bun run build
 
-FROM ruby:3.4.5
+FROM ruby:3.4.8
 
 WORKDIR /app
 

@@ -42,6 +42,14 @@ class VideoCommand < BaseCommand
     prompt = result[:prompt]
     resolution = select_resolution_by_aspect_ratio(parse_aspect_ratio(result[:aspect_ratio] || "1:1"))
 
+    wan_version = if prompt =~ /--wan(?:=|\s+)(2\.2|2\.1)/
+      Regexp.last_match[1]
+    elsif prompt =~ /-W\s+(2\.2|2\.1)/
+      Regexp.last_match[1]
+    else
+      "2.1"
+    end
+
     # Parse frames
     frames = if (match = prompt.match(/--frames\s+(\d+)/))
       match[1].to_i
@@ -56,14 +64,33 @@ class VideoCommand < BaseCommand
       match[1].to_f
     end
 
+    # Parse guidance scale 2 (for wan2.2)
+    guidance_scale_2 = if prompt =~ /--guidance2\s+(\d+\.?\d*)/
+      Regexp.last_match[1].to_f
+    elsif prompt =~ /-g2\s+(\d+\.?\d*)/
+      Regexp.last_match[1].to_f
+    end
+
+    # Parse fast parameter (for wan2.2)
+    fast = true
+    if /--slow/.match?(prompt)
+      fast = false
+    end
+
     prompt = prompt
+      .gsub(/--wan(?:=\s+)?[^\s]+/, "")
+      .gsub(/-W\s+[^\s]+/, "")
       .gsub(/--frames\s+\d+/, "")
       .gsub(/--guidance\s+\d+\.?\d*/, "")
+      .gsub(/--guidance2\s+\d+\.?\d*/, "")
       .gsub(/-f\s+\d+/, "")
       .gsub(/-g\s+\d+\.?\d*/, "")
+      .gsub(/-g2\s+\d+\.?\d*/, "")
+      .gsub("--fast", "")
+      .gsub("--slow", "")
       .strip
 
-    result.merge(resolution:, frames:, guidance:, prompt:)
+    result.merge(resolution:, frames:, guidance:, guidance_scale_2:, fast:, wan_version:, prompt:)
   end
 
   def execute
@@ -74,7 +101,10 @@ class VideoCommand < BaseCommand
     steps = parsed_result[:steps] || 25
     shift = parsed_result[:shift]
     frames = parsed_result[:frames] || 81
-    guidance_scale = parsed_result[:guidance_scale] || 5.0
+    guidance_scale = parsed_result[:guidance_scale]
+    guidance_scale_2 = parsed_result[:guidance_scale_2]
+    fast = parsed_result[:fast]
+    wan_version = parsed_result[:wan_version] || "2.1"  # Default to 2.1 for backward compatibility
     negative_prompt = parsed_result[:negative_prompt]
 
     # Check if we have an image source (attached images, image parameter, or task_id)
@@ -101,6 +131,11 @@ class VideoCommand < BaseCommand
       return
     end
 
+    if wan_version == "2.2" && !has_image
+      server.respond(message, "❌ WAN 2.2 requires an image. Please provide an image using --image, attach an image, or use --task with an existing image.")
+      return
+    end
+
     debug_log("Generating video for prompt: #{prompt}#{" with image" if has_image}")
 
     begin
@@ -114,8 +149,10 @@ class VideoCommand < BaseCommand
       reply = server.respond(message, initial_response)
 
       # Then generate the video and update the message
-      if has_image
-        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
+      if wan_version == "2.2"
+        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
+      elsif has_image
+        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
       else
         generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
       end
@@ -133,11 +170,11 @@ class VideoCommand < BaseCommand
 
   def generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
     # Get API token from environment variables
-    api_token = ENV["CHUTES_API_TOKEN"]
+    api_token = ENV["CHUTES_TOKEN"]
 
     # Validate API token
     if api_token.nil? || api_token.strip.empty?
-      raise "Chutes API token is not configured. Please set the CHUTES_API_TOKEN environment variable."
+      raise "Chutes API token is not configured. Please set the CHUTES_TOKEN environment variable."
     end
 
     # Update task as started
@@ -188,18 +225,18 @@ class VideoCommand < BaseCommand
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the video: #{e.message}")
   end
 
-  def generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
+  def generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
     require "base64"
     require "httparty"
     require "tempfile"
     require "mini_magick"
 
     # Get API token from environment variables
-    api_token = ENV["CHUTES_API_TOKEN"]
+    api_token = ENV["CHUTES_TOKEN"]
 
     # Validate API token
     if api_token.nil? || api_token.strip.empty?
-      raise "Chutes API token is not configured. Please set the CHUTES_API_TOKEN environment variable."
+      raise "Chutes API token is not configured. Please set the CHUTES_TOKEN environment variable."
     end
 
     # Update task as started
@@ -208,8 +245,10 @@ class VideoCommand < BaseCommand
 
     # Get image data either from URLs, filenames, attached images, or from task record
     base64_image = nil
-    image_param = parsed_result[:image]
+    image_param = parsed_result[:image].is_a?(Array) ? parsed_result[:image].first : parsed_result[:image]
     task_id = parsed_result[:task_id]
+
+    debug_log("image_param: #{image_param}, task_id: #{task_id}")
 
     # Process attached images first (from message attachments)
     if message["attached_files"]&.any?
@@ -224,7 +263,7 @@ class VideoCommand < BaseCommand
         image_data = validate_and_convert_image(image_data, "attached file")
       end
       base64_image = Base64.strict_encode64(image_data)
-    elsif image_param
+    elsif image_param.present?
       if image_param.start_with?("http://", "https://")
         # It's a URL
         image_data = download_image(image_param)
@@ -234,7 +273,7 @@ class VideoCommand < BaseCommand
         image_data = load_image_from_task(task.id)
       end
       base64_image = Base64.strict_encode64(image_data)
-    elsif task_id
+    elsif task_id.present?
       image_data = load_image_from_task(task_id)
       base64_image = Base64.strict_encode64(image_data)
     end
@@ -242,23 +281,48 @@ class VideoCommand < BaseCommand
     # Create Chutes HTTP client
     http_client = ChutesHttpClient.new(nil, api_token)
 
-    # Prepare the payload for image2video
-    payload = {
-      prompt: prompt,
-      image_b64: base64_image,
-      guidance_scale: guidance_scale || 5.0,
-      resolution: resolution,
-      sample_shift: shift,
-      seed: seed,
-      steps: steps,
-      frames: frames,
-      fps: 16,
-      single_frame: false,
-      negative_prompt: negative_prompt
-    }
+    # Prepare the payload based on wan version
+    if wan_version == "2.2"
+      # Convert resolution format for wan2.2 (e.g., "1280*720" -> "720p")
+      resolution_map = {
+        "1280*720" => "720p",
+        "720*1280" => "720p",
+        "832*480" => "480p",
+        "480*832" => "480p",
+        "1024*1024" => "480p"  # Default to 480p for square
+      }
+
+      payload = {
+        prompt: prompt,
+        negative_prompt: negative_prompt || "",
+        image: base64_image,
+        frames: frames,
+        resolution: resolution_map[resolution] || "480p",
+        fps: 16,
+        fast: fast,
+        seed: seed,
+        guidance_scale: guidance_scale || 1.0,
+        guidance_scale_2: guidance_scale_2 || 1.0
+      }
+    else
+      # wan2.1 format
+      payload = {
+        prompt: prompt,
+        image_b64: base64_image,
+        guidance_scale: guidance_scale || 5.0,
+        resolution: resolution,
+        sample_shift: shift,
+        seed: seed,
+        steps: steps,
+        frames: frames,
+        fps: 16,
+        single_frame: false,
+        negative_prompt: negative_prompt
+      }
+    end
 
     # Generate the video from image
-    result = http_client.generate_image2video(payload)
+    result = http_client.generate_image2video(payload, wan_version)
 
     # Update task as completed
     update_generation_task_completed(generation_task, result[:prompt_id])
