@@ -5,6 +5,7 @@ class PromptParameterParser
       split(/\s*,\s*/).map(&:strip)
     end
   end
+  DEFAULT_MODEL = "qwen"
   DEFAULT_CONFIGS = {
     flux: {
       width: 1024,
@@ -53,7 +54,7 @@ class PromptParameterParser
     result = extract_parameters(full_prompt)
 
     params = {
-      model: model || "flux",
+      model: model || DEFAULT_MODEL,
       seed: rand(1000000000),
       negative_prompt: ""
     }

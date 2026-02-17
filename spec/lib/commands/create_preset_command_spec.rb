@@ -160,8 +160,8 @@ RSpec.describe CreatePresetCommand do
         params = JSON.parse(preset.parameters, symbolize_names: true)
         expect(params[:aspect_ratio]).to eq("16:9")
         expect(params[:steps]).to eq(20)
-        expect(params[:width]).to eq(1344)
-        expect(params[:height]).to eq(768)
+        expect(params[:width]).to eq(1328)
+        expect(params[:height]).to eq(744)
       end
 
       it "responds with success message" do
