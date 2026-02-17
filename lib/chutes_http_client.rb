@@ -18,7 +18,7 @@ class ChutesHttpClient
     path = if model == "z-image"
       "https://chutes-z-image-turbo.chutes.ai/generate"
     else
-      "/generate"
+      "#{@base_url}/generate"
     end
     response = HTTParty.post(path,
       body: payload.to_json,
