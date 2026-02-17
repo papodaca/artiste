@@ -177,7 +177,7 @@ class PhotoGalleryApp < Sinatra::Base
     offset = 0
     limit = PHOTO_BATCH_SIZE
     photos = get_photos(offset:, limit:)
-    photo_details = params[:modal] == "detail" && params[:detail] ? get_photo_details(params[:detail]) : nil
+    photo_details = (params[:modal] == "detail" && params[:detail]) ? get_photo_details(params[:detail]) : nil
 
     # Handle presets modal
     if params[:modal] == "presets"

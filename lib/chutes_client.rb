@@ -1,5 +1,3 @@
-
-
 class ChutesClient < ImageGenerationClient
   attr_reader :http_client
 
@@ -17,14 +15,15 @@ class ChutesClient < ImageGenerationClient
       "guidance_scale" => params[:shift] || 4.0,
       "width" => params[:width] || 1024,
       "height" => params[:height] || 1024,
-      "num_inference_steps" => params[:steps] || 50,
+      "num_inference_steps" => params[:steps] || 30,
+      "true_cfg_scale" => 4.0,
       "seed" => params[:seed] || 1
     }
 
     block.call(:started, nil, nil) if block_given?
 
     # Generate the image
-    result = http_client.generate_image(payload)
+    result = http_client.generate_image(payload, model: payload["model"])
     image_data = result[:image_data]
     prompt_id = result[:prompt_id]
 
@@ -52,7 +51,7 @@ class ChutesClient < ImageGenerationClient
     block.call(:started, nil, nil) if block_given?
 
     # Generate the image
-    result = http_client.generate_image(payload)
+    result = http_client.generate_image(payload, model: payload["model"])
     image_data = result[:image_data]
     prompt_id = result[:prompt_id]
 
@@ -92,6 +91,31 @@ class ChutesClient < ImageGenerationClient
     make_result(png_data, prompt_id)
   end
 
+  def generate_z_image(params, &block)
+    # Set default values for parameters
+    payload = {
+      "seed" => params[:seed] || rand(1000000000),
+      "width" => params[:width] || 1024,
+      "height" => params[:height] || 1024,
+      "prompt" => params[:prompt] || "",
+      "guidance_scale" => params[:guidance] || 0.0,
+      "num_inference_steps" => params[:steps] || 40
+    }
+
+    block.call(:started, nil, nil) if block_given?
+
+    # Generate the image using the edit endpoint
+    result = http_client.generate_image(payload, model: params[:model])
+    image_data = result[:image_data]
+    prompt_id = result[:prompt_id]
+
+    png_data = convert_to_png(image_data)
+
+    block.call(:completed, prompt_id, nil) if block_given?
+
+    make_result(png_data, prompt_id)
+  end
+
   # Generic generate method that selects model based on params
   def generate(params, &block)
     model = params[:model] || "qwen-image"
@@ -103,6 +127,8 @@ class ChutesClient < ImageGenerationClient
       generate_flux_image(params, &block)
     when "qwen-image-edit"
       generate_qwen_image_edit(params, &block)
+    when "z-image"
+      generate_z_image(params, &block)
     else
       raise "Unsupported model: #{model}. Supported models are: qwen-image, FLUX.1-schnell, qwen-image-edit"
     end

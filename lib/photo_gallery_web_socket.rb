@@ -214,7 +214,7 @@ class PhotoGalleryWebSocket
         encryptor = Rack::Session::Encryptor.new(session_secret)
         data = encryptor.decrypt(CGI.unescape(session_data))
         if data.has_key?("user_info")
-          user_info = JSON.load(data["user_info"])
+          user_info = JSON.parse(data["user_info"])
           return user_info["id"]
         end
       rescue => e

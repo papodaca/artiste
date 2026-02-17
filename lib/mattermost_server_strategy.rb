@@ -1,5 +1,5 @@
 class MattermostServerStrategy < ServerStrategy
-  def initialize(*args, **kwargs)
+  def initialize(*_args, **kwargs)
     @mattermost_url = kwargs[:mattermost_url]
     @mattermost_token = kwargs[:mattermost_token]
     @mattermost_channels = kwargs[:mattermost_channels]
@@ -16,7 +16,7 @@ class MattermostServerStrategy < ServerStrategy
     get_self_user
   end
 
-  def connect(&block)
+  def connect
     @messages_sequence = 1
     ws = WebSocket::EventMachine::Client.connect(
       uri: @websocket_uri.to_s,
@@ -36,9 +36,10 @@ class MattermostServerStrategy < ServerStrategy
     #   }.to_json)
     # end
 
-    ws.onmessage do |msg, type|
+    ws.onmessage do |msg, _type|
       msg_data = JSON.parse(msg)
-      msg_data["data"]["mentions"] = JSON.parse(msg_data.dig("data", "mentions")) unless msg_data.dig("data", "mentions").nil?
+      msg_data["data"]["mentions"] = JSON.parse(msg_data.dig("data", "mentions")) unless msg_data.dig("data",
+        "mentions").nil?
       msg_data["data"]["post"] = JSON.parse(msg_data.dig("data", "post")) unless msg_data.dig("data", "post").nil?
       @messages_sequence = msg["seq"]
 
@@ -46,7 +47,10 @@ class MattermostServerStrategy < ServerStrategy
         mentions = msg_data.dig("data", "mentions") || []
         msg_data["message"] = msg_data.dig("data", "post", "message")
 
-        if mentions.include?(@mattermost_bot_id) && ((msg_data.dig("data", "channel_type") == "D" && msg_data["message"].include?("@#{@mattermost_bot_name}")) || @mattermost_channels.include?(msg_data.dig("data", "post", "channel_id")))
+        if mentions.include?(@mattermost_bot_id) && ((msg_data.dig("data",
+          "channel_type") == "D" && msg_data["message"].include?("@#{@mattermost_bot_name}")) || @mattermost_channels.include?(msg_data.dig(
+            "data", "post", "channel_id"
+          )))
           # Download attached images if any
           download_attached_images(msg_data)
           yield msg_data
@@ -54,7 +58,7 @@ class MattermostServerStrategy < ServerStrategy
       end
     end
 
-    ws.onclose do |code, reason|
+    ws.onclose do |_code, _reason|
       raise "socket closed"
     end
   end
@@ -80,7 +84,7 @@ class MattermostServerStrategy < ServerStrategy
       post_id: reply["id"],
       message: update
     }
-    if !file.nil?
+    unless file.nil?
       # Final update has the final image!
       body[:file_ids] = upload_file(message.dig("data", "post", "channel_id"), file, filename)
     end
@@ -101,25 +105,20 @@ class MattermostServerStrategy < ServerStrategy
     @mattermost_bot_name = user_data["username"]
   end
 
-  def upload_file(channel_id, file, filename)
-    # Create a proper multipart form for file upload
-    # HTTParty requires the file to be wrapped in a File-like object or use multipart option
-    #
-
-    multipart_data = {
-      channel_id: channel_id,
-      files: file
-    }
-
-    new_files = @client.post(
-      "/files",
-      query: {
+  def upload_file(channel_id, file_path, _filename)
+    response = RestClient.post(
+      "#{@mattermost_url}/api/v4/files",
+      {
         channel_id: channel_id,
-        filename: filename || "generated.png"
+        files: File.new(file_path, "rb")
       },
-      multipart: true,
-      body: multipart_data
+      {
+        Authorization: "Bearer #{@mattermost_token}",
+        multipart: true
+      }
     )
+
+    new_files = JSON.parse(response.body)
     new_files["file_infos"].map { |f| f["id"] }
   end
 

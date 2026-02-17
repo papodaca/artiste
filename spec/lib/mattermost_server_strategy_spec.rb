@@ -5,7 +5,7 @@ RSpec.describe MattermostServerStrategy do
     {
       mattermost_url: "https://mattermost.example.com",
       mattermost_token: "test-token",
-      mattermost_channels: ["channel1", "channel2"]
+      mattermost_channels: %w[channel1 channel2]
     }
   end
 
@@ -25,7 +25,7 @@ RSpec.describe MattermostServerStrategy do
 
       expect(strategy.instance_variable_get(:@mattermost_url)).to eq("https://mattermost.example.com")
       expect(strategy.instance_variable_get(:@mattermost_token)).to eq("test-token")
-      expect(strategy.instance_variable_get(:@mattermost_channels)).to eq(["channel1", "channel2"])
+      expect(strategy.instance_variable_get(:@mattermost_channels)).to eq(%w[channel1 channel2])
     end
 
     it "sets up websocket URI correctly for HTTPS" do
@@ -165,50 +165,31 @@ RSpec.describe MattermostServerStrategy do
   describe "#upload_file" do
     let(:strategy) { described_class.allocate }
     let(:channel_id) { "channel-id" }
-    let(:file) { "file-data" }
+    let(:file_path) { "/tmp/test.png" }
     let(:filename) { "test.png" }
 
     before do
-      # Stub HTTParty methods
-      allow(MattermostClient).to receive(:post).and_return({
-        "file_infos" => [
-          {"id" => "file-id-1"},
-          {"id" => "file-id-2"}
-        ]
-      })
-      strategy.instance_variable_set(:@client, MattermostClient)
+      strategy.instance_variable_set(:@mattermost_url, "https://mattermost.example.com")
+      strategy.instance_variable_set(:@mattermost_token, "test-token")
+
+      mock_file = instance_double(File, path: file_path)
+      allow(File).to receive(:new).with(file_path, "rb").and_return(mock_file)
+
+      mock_response = double("response", body: '{"file_infos":[{"id":"file-id-1"},{"id":"file-id-2"}]}')
+      allow(RestClient).to receive(:post).and_return(mock_response)
     end
 
     it "uploads file with correct parameters" do
-      file_ids = strategy.send(:upload_file, channel_id, file, filename)
+      file_ids = strategy.send(:upload_file, channel_id, file_path, filename)
 
-      expect(MattermostClient).to have_received(:post).with(
-        "/files",
-        query: {
-          channel_id: "channel-id",
-          filename: "test.png"
-        },
-        multipart: true,
-        body: {
-          channel_id: "channel-id",
-          files: "file-data"
-        }
-      )
-      expect(file_ids).to eq(["file-id-1", "file-id-2"])
-    end
-
-    it "uses default filename when not provided" do
-      allow(MattermostClient).to receive(:post).and_return({
-        "file_infos" => [
-          {"id" => "file-id-1"}
-        ]
-      })
-
-      strategy.send(:upload_file, channel_id, file, nil)
-
-      expect(MattermostClient).to have_received(:post) do |path, options|
-        expect(options[:query][:filename]).to eq("generated.png")
+      expect(RestClient).to have_received(:post) do |url, payload, headers|
+        expect(url).to eq("https://mattermost.example.com/api/v4/files")
+        expect(payload[:channel_id]).to eq("channel-id")
+        expect(payload[:files]).to respond_to(:path)
+        expect(headers[:Authorization]).to eq("Bearer test-token")
+        expect(headers[:multipart]).to be true
       end
+      expect(file_ids).to eq(%w[file-id-1 file-id-2])
     end
   end
 
@@ -279,8 +260,10 @@ RSpec.describe MattermostServerStrategy do
       before do
         allow(strategy).to receive(:download_file).with("file-id-1").and_return("file-data-1")
         allow(strategy).to receive(:download_file).with("file-id-2").and_return("file-data-2")
-        allow(strategy).to receive(:save_downloaded_file).with("file-data-1", "image1.png").and_return("dp/tmp/image1_1234567890.png")
-        allow(strategy).to receive(:save_downloaded_file).with("file-data-2", "image2.jpg").and_return("dp/tmp/image2_1234567890.jpg")
+        allow(strategy).to receive(:save_downloaded_file).with("file-data-1",
+          "image1.png").and_return("dp/tmp/image1_1234567890.png")
+        allow(strategy).to receive(:save_downloaded_file).with("file-data-2",
+          "image2.jpg").and_return("dp/tmp/image2_1234567890.jpg")
       end
 
       it "downloads each file and adds paths to msg_data" do
@@ -289,7 +272,8 @@ RSpec.describe MattermostServerStrategy do
         expect(strategy).to have_received(:download_file).with("file-id-2")
         expect(strategy).to have_received(:save_downloaded_file).with("file-data-1", "image1.png")
         expect(strategy).to have_received(:save_downloaded_file).with("file-data-2", "image2.jpg")
-        expect(msg_data_with_files["attached_files"]).to eq(["file://dp/tmp/image1_1234567890.png", "file://dp/tmp/image2_1234567890.jpg"])
+        expect(msg_data_with_files["attached_files"]).to eq(["file://dp/tmp/image1_1234567890.png",
+          "file://dp/tmp/image2_1234567890.jpg"])
       end
 
       it "handles download errors gracefully" do
@@ -327,7 +311,7 @@ RSpec.describe MattermostServerStrategy do
     let(:strategy) { described_class.allocate }
     let(:file_data) { "binary-file-data" }
     let(:filename) { "test.png" }
-    let(:timestamp) { 1758981480 }
+    let(:timestamp) { 1_758_981_480 }
 
     before do
       # Stub file system operations

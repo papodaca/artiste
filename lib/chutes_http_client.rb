@@ -8,15 +8,21 @@ class ChutesHttpClient
     self.class.base_uri(@base_url)
 
     # Set default headers
-    default_headers = {"content-type" => "application/json"}
-    default_headers["Authorization"] = "Bearer #{token}" if token
-    self.class.headers(default_headers)
+    @default_headers = {"content-type" => "application/json"}
+    @default_headers["Authorization"] = "Bearer #{token}" if token
+    self.class.headers(@default_headers)
   end
 
   # Generate image using Chutes API
-  def generate_image(payload)
-    response = self.class.post("/generate",
-      body: payload.to_json)
+  def generate_image(payload, model: "flux")
+    path = if model == "z-image"
+      "https://chutes-z-image-turbo.chutes.ai/generate"
+    else
+      "/generate"
+    end
+    response = HTTParty.post(path,
+      body: payload.to_json,
+      headers: @default_headers)
 
     if response.success?
       {

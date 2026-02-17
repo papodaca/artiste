@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (8.1.1)
+    activesupport (8.1.2)
       base64
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.3.1)
@@ -17,6 +17,7 @@ GEM
     ast (2.4.3)
     base64 (0.3.0)
     bigdecimal (4.0.1)
+    cgi (0.5.1)
     coderay (1.1.3)
     concurrent-ruby (1.3.6)
     connection_pool (3.0.2)
@@ -39,28 +40,27 @@ GEM
     eventmachine (1.2.7)
     factory_bot (6.5.6)
       activesupport (>= 6.1.0)
-    ffi (1.17.2)
-    ffi (1.17.2-aarch64-linux-gnu)
-    ffi (1.17.2-aarch64-linux-musl)
-    ffi (1.17.2-arm-linux-gnu)
-    ffi (1.17.2-arm-linux-musl)
-    ffi (1.17.2-arm64-darwin)
-    ffi (1.17.2-x86-linux-gnu)
-    ffi (1.17.2-x86-linux-musl)
-    ffi (1.17.2-x86_64-darwin)
-    ffi (1.17.2-x86_64-linux-gnu)
-    ffi (1.17.2-x86_64-linux-musl)
+    ffi (1.17.3-aarch64-linux-gnu)
+    ffi (1.17.3-aarch64-linux-musl)
+    ffi (1.17.3-arm-linux-gnu)
+    ffi (1.17.3-arm-linux-musl)
+    ffi (1.17.3-arm64-darwin)
+    ffi (1.17.3-x86-linux-gnu)
+    ffi (1.17.3-x86-linux-musl)
+    ffi (1.17.3-x86_64-darwin)
+    ffi (1.17.3-x86_64-linux-gnu)
+    ffi (1.17.3-x86_64-linux-musl)
     http-accept (1.7.0)
     http-cookie (1.1.0)
       domain_name (~> 0.5)
-    httparty (0.24.0)
+    httparty (0.24.2)
       csv
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
-    json (2.18.0)
+    json (2.18.1)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -68,38 +68,39 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0924)
+    mime-types-data (3.2026.0203)
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
     minitest (6.0.1)
       prism (~> 1.5)
-    multi_xml (0.8.0)
+    multi_xml (0.8.1)
       bigdecimal (>= 3.1, < 5)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.3.0)
     netrc (0.11.0)
-    oj (3.16.13)
+    oj (3.16.15)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
-    openai (0.42.0)
+    openai (0.49.0)
       base64
+      cgi
       connection_pool
     opus-ruby (1.0.1)
       ffi
     ostruct (0.6.3)
     parallel (1.27.0)
-    parser (3.3.10.0)
+    parser (3.3.10.2)
       ast (~> 2.4.1)
       racc
-    prism (1.7.0)
+    prism (1.9.0)
     pry (0.16.0)
       coderay (~> 1.1)
       method_source (~> 1.0)
       reline (>= 0.6.0)
     racc (1.8.1)
-    rack (3.2.4)
+    rack (3.2.5)
     rack-protection (4.2.1)
       base64 (>= 0.1.0)
       logger (>= 1.6.0)
@@ -131,8 +132,8 @@ GEM
     rspec-mocks (3.13.7)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-support (3.13.6)
-    rubocop (1.81.7)
+    rspec-support (3.13.7)
+    rubocop (1.84.2)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -140,7 +141,7 @@ GEM
       parser (>= 3.3.0.2)
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 2.9.3, < 3.0)
-      rubocop-ast (>= 1.47.1, < 2.0)
+      rubocop-ast (>= 1.49.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
     rubocop-ast (1.49.0)
@@ -153,7 +154,7 @@ GEM
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     securerandom (0.4.1)
-    sequel (5.99.0)
+    sequel (5.101.0)
       bigdecimal
     sinatra (4.2.1)
       logger (>= 1.6.0)
@@ -172,10 +173,10 @@ GEM
     sqlite3 (2.9.0-x86_64-darwin)
     sqlite3 (2.9.0-x86_64-linux-gnu)
     sqlite3 (2.9.0-x86_64-linux-musl)
-    standard (1.52.0)
+    standard (1.54.0)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.0)
-      rubocop (~> 1.81.7)
+      rubocop (~> 1.84.0)
       standard-custom (~> 1.0.0)
       standard-performance (~> 1.8)
     standard-custom (1.0.2)
@@ -189,7 +190,7 @@ GEM
       eventmachine (~> 1.0, >= 1.0.4)
       logger
       rack (>= 1, < 4)
-    tilt (2.6.1)
+    tilt (2.7.0)
     timecop (0.9.10)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -244,6 +245,7 @@ DEPENDENCIES
   rack-test
   rake
   reline
+  rest-client
   rspec
   sequel
   sinatra

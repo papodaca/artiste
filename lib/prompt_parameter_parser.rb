@@ -21,7 +21,7 @@ class PromptParameterParser
   }
 
   PARAMS = {
-    model: {match: %r{(?:--model(?:=|\s+)|-m\s+)(\w+)}, clean: %r{(?:--model(?:=|\s+)|-m\s+)\w+}, parse: :to_s},
+    model: {match: %r{(?:--model(?:=|\s+)|-m\s+)([\w-]+)}, clean: %r{(?:--model(?:=|\s+)|-m\s+)[\w-]+}, parse: :to_s},
     basesize: {match: %r{(?:--basesize(?:=|\s+)|-b\s+)(\d+)}, clean: %r{(?:--basesize(?:=|\s+)|-b\s+)\d+}, parse: :to_i},
     aspect_ratio: {match: %r{(?:--ar(?:=|\s+)|-a\s+)([^\s-]+)}, clean: %r{(?:--ar(?:=|\s+)|-a\s+)[^\s-]+}, parse: :to_s},
     shift: {match: %r{(?:--shift(?:=|\s+)|-S\s+)(\d+.?\d*)}, clean: %r{(?:--shift(?:=|\s+)|-S\s+)\d+.?\d*}, parse: :to_f},
