@@ -11,7 +11,7 @@ class ChutesClient < ImageGenerationClient
   def generate_qwen_image(params, &block)
     # Set default values for parameters
     payload = {
-      "model" => "qwen-image",
+      "model" => "Qwen-Image-2512",
       "prompt" => params[:prompt] || "",
       "negative_prompt" => params[:negative_prompt] || "",
       "guidance_scale" => params[:shift] || 4.0,
