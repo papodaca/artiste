@@ -33,7 +33,7 @@ class HelpCommand < BaseCommand
 
       /text <text prompt> [options]
         Options:
-          --model|-m <name>       Set model (qwen, qwen-coder, llama, glm-4, glm-4.5, deepseek-r1, deepseek-v3 and gpt-oss)
+          --model|-m <name>       Set model (qwen, qwen-coder, llama, glm-5, glm-5-flash, glm-4, deepseek-r1, deepseek-v3 and gpt-oss)
           --temperature|-t <temp> Set temperature (default: 0.7)
           --no-system             Disable Artiste's system prompt
       

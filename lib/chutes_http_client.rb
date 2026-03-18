@@ -5,8 +5,6 @@ class ChutesHttpClient
     @base_url = base_url
     @token = token
 
-    self.class.base_uri(@base_url)
-
     # Set default headers
     @default_headers = {"content-type" => "application/json"}
     @default_headers["Authorization"] = "Bearer #{token}" if token

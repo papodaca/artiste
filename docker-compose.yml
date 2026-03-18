@@ -26,7 +26,7 @@ services:
       - 8065:8065
     depends_on:
       - postgres
-    image: mattermost/mattermost-team-edition:11.1
+    image: mattermost/mattermost-team-edition:11.5
     security_opt:
       - no-new-privileges:true
     pids_limit: 200

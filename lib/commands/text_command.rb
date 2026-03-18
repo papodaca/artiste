@@ -1,12 +1,13 @@
 MODELS_MAP = {
-  "deepseek-r1" => "deepseek-ai/DeepSeek-R1",
-  "deepseek-v3" => "deepseek-ai/DeepSeek-V3.1",
-  "glm-4.5" => "zai-org/GLM-4.5-FP8",
-  "glm-4" => "zai-org/GLM-4-32B-0414",
-  "gpt-oss" => "openai/gpt-oss-120b",
-  "llama" => "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5",
-  "qwen-coder" => "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-  "qwen" => "Qwen/Qwen3-235B-A22B-Instruct-2507"
+  "deepseek-r1" => "deepseek-ai/DeepSeek-R1-0528-TEE",
+  "deepseek-v3" => "deepseek-ai/DeepSeek-V3.2-TEE",
+  "glm-5" => "zai-org/GLM-5-TEE",
+  "glm-5-flash" => "zai-org/GLM-5-Turbo",
+  "glm-4" => "zai-org/GLM-4.7-TEE",
+  "gpt-oss" => "openai/gpt-oss-120b-TEE",
+  "llama" => "unsloth/Llama-3.2-3B-Instruct",
+  "qwen-coder" => "Qwen/Qwen3-Coder-Next-TEE",
+  "qwen" => "Qwen/Qwen3.5-397B-A17B-TEE"
 }.freeze
 
 class TextCommand < BaseCommand
@@ -28,7 +29,7 @@ class TextCommand < BaseCommand
     end
 
     {
-      model: MODELS_MAP[model] || MODELS_MAP["qwen"],
+      model: MODELS_MAP[model] || MODELS_MAP["glm-5-flash"],
       system_prompt: system_prompt,
       temperature: temperature,
       prompt: prompt
@@ -76,8 +77,8 @@ class TextCommand < BaseCommand
 
     # Create OpenAI client
     client = OpenAI::Client.new(
-      api_key: api_key,
-      base_url: api_url,
+      access_token: api_key,
+      uri_base: api_url,
       timeout: 10
     )
 
@@ -90,35 +91,35 @@ class TextCommand < BaseCommand
     messages << {role: "system", content: system_prompt} if has_system_prompt
     messages << {role: "user", content: prompt}
 
-    # Stream the response
-    stream = client.chat.completions.stream_raw(
-      model: model,
-      messages: messages,
-      temperature: temperature
-    )
-
-    # Process each chunk of the stream
-    stream.each do |chunk|
+    stream_proc = proc { |chunk, _bytesize|
       # Check for errors in the chunk
       if chunk.to_h.has_key?(:error)
         raise "API error: #{chunk.error.message}"
       end
 
       # Extract the content from the chunk
-      content = chunk.choices&.first&.delta&.content
+      content = chunk.dig("choices", 0, "delta", "content")
 
       # If there's content, append it to our response and update the message
       if content
         response_text += content
         server.update(message, reply, response_text)
       end
-    end
+    }
+
+    # Stream the response
+    client.chat(
+      parameters: {
+        model: model,
+        stream: stream_proc,
+        messages: messages,
+        temperature: temperature
+      }
+    )
 
     # Final update to remove the thinking indicator if needed
     server.update(message, reply, response_text) if response_text != ""
   rescue => e
-    require "pry"
-    # binding.pry
     debug_log("Error streaming text: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the text response.")
   end
