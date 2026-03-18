@@ -3,7 +3,7 @@ require "spec_helper"
 RSpec.describe TextCommand do
   let(:mattermost) { instance_double("MattermostServerStrategy") }
   let(:message) { {"data" => {"post" => {"id" => "post-id", "channel_id" => "channel-id"}}} }
-  let(:parsed_result) { {model: "Qwen/Qwen3.5-397B-A17B-TEE", prompt: "Hello, how are you?"} }
+  let(:parsed_result) { {model: "openai/gpt-oss-120b-TEE", prompt: "Hello, how are you?"} }
   let(:user_settings) { nil }
   let(:command) { described_class.new(mattermost, message, parsed_result, user_settings, false) }
   let(:reply) { {"id" => "reply-id"} }
@@ -26,7 +26,7 @@ RSpec.describe TextCommand do
     it "parses a prompt into a command structure" do
       result = TextCommand.parse("Write a poem about art")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: true,
         temperature: 0.7
@@ -36,7 +36,7 @@ RSpec.describe TextCommand do
     it "strips whitespace from the prompt" do
       result = TextCommand.parse("  Write a poem about art  ")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: true,
         temperature: 0.7
@@ -46,7 +46,7 @@ RSpec.describe TextCommand do
     it "handles empty strings" do
       result = TextCommand.parse("")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "",
         system_prompt: true,
         temperature: 0.7
@@ -66,7 +66,7 @@ RSpec.describe TextCommand do
     it "parses custom temperature" do
       result = TextCommand.parse("--temperature 0.5 Write a poem about art")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: true,
         temperature: 0.5
@@ -76,7 +76,7 @@ RSpec.describe TextCommand do
     it "parses no-system" do
       result = TextCommand.parse("--no-system Write a poem about art")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: false,
         temperature: 0.7
@@ -131,7 +131,7 @@ RSpec.describe TextCommand do
     end
 
     context "when prompt is empty" do
-      let(:parsed_result) { {model: "Qwen/Qwen3.5-397B-A17B-TEE", prompt: ""} }
+      let(:parsed_result) { {model: "openai/gpt-oss-120b-TEE", prompt: ""} }
 
       before do
         allow(mattermost).to receive(:respond)
@@ -152,7 +152,7 @@ RSpec.describe TextCommand do
     end
 
     context "when prompt is nil" do
-      let(:parsed_result) { {model: "Qwen/Qwen3.5-397B-A17B-TEE", prompt: nil} }
+      let(:parsed_result) { {model: "openai/gpt-oss-120b-TEE", prompt: nil} }
 
       before do
         allow(mattermost).to receive(:respond)

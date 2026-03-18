@@ -12,7 +12,7 @@ MODELS_MAP = {
 
 class TextCommand < BaseCommand
   def self.parse(prompt)
-    model = "qwen"
+    model = "gpt-oss"
     temperature = 0.7
 
     if (match = prompt.match(/(?:--model(?:=|\s+)|-m\s+)([^\s]+)/))
@@ -29,7 +29,7 @@ class TextCommand < BaseCommand
     end
 
     {
-      model: MODELS_MAP[model] || MODELS_MAP["glm-5-flash"],
+      model: MODELS_MAP[model] || MODELS_MAP["gpt-oss"],
       system_prompt: system_prompt,
       temperature: temperature,
       prompt: prompt
@@ -101,7 +101,7 @@ class TextCommand < BaseCommand
       content = chunk.dig("choices", 0, "delta", "content")
 
       # If there's content, append it to our response and update the message
-      if content
+      if content && content.length > 0
         response_text += content
         server.update(message, reply, response_text)
       end

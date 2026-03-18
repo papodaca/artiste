@@ -5,7 +5,7 @@ RSpec.describe TextCommand do
     it "parses a prompt into a command structure" do
       result = TextCommand.parse("Write a poem about art")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: true,
         temperature: 0.7
@@ -15,7 +15,7 @@ RSpec.describe TextCommand do
     it "strips whitespace from the prompt" do
       result = TextCommand.parse("  Write a poem about art  ")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "Write a poem about art",
         system_prompt: true,
         temperature: 0.7
@@ -25,7 +25,7 @@ RSpec.describe TextCommand do
     it "handles empty strings" do
       result = TextCommand.parse("")
       expect(result).to eq({
-        model: "Qwen/Qwen3.5-397B-A17B-TEE",
+        model: "openai/gpt-oss-120b-TEE",
         prompt: "",
         system_prompt: true,
         temperature: 0.7
