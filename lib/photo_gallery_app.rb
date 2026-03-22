@@ -124,6 +124,8 @@ class PhotoGalleryApp < Sinatra::Base
 
   def get_lyrics(details)
     lyrics = details&.dig(:task, :parameters, "lyrics")&.strip
+    return if !lyrics || lyrics&.empty?
+
     lyrics.split("\n").map(&:strip).reject(&:blank?).join("\n")
   rescue JSON::ParserError
     nil
