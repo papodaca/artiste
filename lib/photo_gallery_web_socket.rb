@@ -24,6 +24,21 @@ class PhotoGalleryWebSocket
       path.downcase.end_with?(".mp4")
     end
 
+    def is_audio(path)
+      path.downcase.end_with?(".m4a", ".mp3", ".wav")
+    end
+
+    def get_album_cover_path(audio_path)
+      return nil unless audio_path
+
+      base_name = File.basename(audio_path, ".*")
+      dir = File.dirname(audio_path)
+      cover_relative_path = "#{dir}/cover_#{base_name}.png"
+      cover_full_path = File.join("db", "music", cover_relative_path)
+
+      File.exist?(cover_full_path) ? "/music/#{cover_relative_path}" : nil
+    end
+
     def current_user_admin?
       ENV["ARTISTE_ADMINS"].split(",").map(&:strip).include?(connection.user_id)
     end
@@ -83,7 +98,7 @@ class PhotoGalleryWebSocket
             connections.delete_if { |conn| conn.websocket == ws }
           end
 
-          ws.onerror do |error|
+          ws.onerror do |_error|
             connections.delete_if { |conn| conn.websocket == ws }
           end
         end
@@ -107,9 +122,7 @@ class PhotoGalleryWebSocket
       connections.each do |conn|
         message_text = render_photo_item_stream(message, conn)
         message_json = {}.merge(message).merge(html: message_text).to_json
-        if target_user_id.nil? || conn.user_id == target_user_id
-          conn.websocket.send(message_json)
-        end
+        conn.websocket.send(message_json) if target_user_id.nil? || conn.user_id == target_user_id
       rescue => e
         puts "Error broadcasting message: #{e.message}"
         connections.delete(conn)
@@ -135,7 +148,7 @@ class PhotoGalleryWebSocket
 
         response = http.request(request)
 
-        if !response.is_a?(Net::HTTPSuccess)
+        unless response.is_a?(Net::HTTPSuccess)
           puts "Failed to forward message to peer: #{response.code} #{response.message}"
         end
       rescue => e
@@ -144,7 +157,7 @@ class PhotoGalleryWebSocket
     end
 
     def notify_new_photo(photo_path, task_data = nil)
-      rel_path = photo_path.gsub(/^db\/photos\//, "")
+      rel_path = photo_path.gsub(%r{^db/(?:photos|music)/}, "")
       photo_id = task_data&.dig("id") || task_data&.dig(:id)
       is_private = task_data&.dig("private") || task_data&.dig(:private)
       user_id = task_data&.dig("user_id") || task_data&.dig(:user_id)
@@ -184,7 +197,7 @@ class PhotoGalleryWebSocket
 
     private
 
-    def handle_message(ws, msg, type)
+    def handle_message(ws, msg, _type)
       data = JSON.parse(msg)
 
       # Handle different message types here if needed

@@ -14,7 +14,7 @@ COPY . .
 COPY --from=css-build /app/assets/styles/app.dist.css /app/assets/styles/
 
 RUN apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y libimage-exiftool-perl imagemagick \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y libimage-exiftool-perl imagemagick ffmpeg \
   && rm -rf /var/lib/apt/lists/* \
   && bundle install -j $(nproc)
 

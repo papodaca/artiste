@@ -214,7 +214,7 @@ RSpec.describe MattermostServerStrategy do
     end
   end
 
-  describe "#download_attached_images" do
+  describe "#download_attached_audio_or_image" do
     let(:strategy) { described_class.allocate }
     let(:msg_data) do
       {
@@ -240,7 +240,7 @@ RSpec.describe MattermostServerStrategy do
 
     context "when post has no files" do
       it "does not download any files" do
-        strategy.send(:download_attached_images, msg_data)
+        strategy.send(:download_attached_audio_or_image, msg_data)
         expect(strategy).not_to have_received(:download_file)
         expect(strategy).not_to have_received(:save_downloaded_file)
         expect(msg_data["attached_files"]).to be_nil
@@ -267,7 +267,7 @@ RSpec.describe MattermostServerStrategy do
       end
 
       it "downloads each file and adds paths to msg_data" do
-        strategy.send(:download_attached_images, msg_data_with_files)
+        strategy.send(:download_attached_audio_or_image, msg_data_with_files)
         expect(strategy).to have_received(:download_file).with("file-id-1")
         expect(strategy).to have_received(:download_file).with("file-id-2")
         expect(strategy).to have_received(:save_downloaded_file).with("file-data-1", "image1.png")
@@ -278,7 +278,7 @@ RSpec.describe MattermostServerStrategy do
 
       it "handles download errors gracefully" do
         allow(strategy).to receive(:download_file).with("file-id-1").and_raise("Download error")
-        expect { strategy.send(:download_attached_images, msg_data_with_files) }.not_to raise_error
+        expect { strategy.send(:download_attached_audio_or_image, msg_data_with_files) }.not_to raise_error
         expect(strategy).to have_received(:save_downloaded_file).with("file-data-2", "image2.jpg")
         expect(msg_data_with_files["attached_files"]).to eq(["file://dp/tmp/image2_1234567890.jpg"])
       end

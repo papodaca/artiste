@@ -52,7 +52,7 @@ class MattermostServerStrategy < ServerStrategy
             "data", "post", "channel_id"
           )))
           # Download attached images if any
-          download_attached_images(msg_data)
+          download_attached_audio_or_image(msg_data)
           yield msg_data
         end
       end
@@ -122,13 +122,13 @@ class MattermostServerStrategy < ServerStrategy
     new_files["file_infos"].map { |f| f["id"] }
   end
 
-  def download_attached_images(msg_data)
+  def download_attached_audio_or_image(msg_data)
     files = msg_data.dig("data", "post", "metadata", "files")
     return if files.nil? || files&.empty?
 
     msg_data["attached_files"] ||= []
     files.each do |file|
-      next unless file["mime_type"].start_with?("image/")
+      next unless file["mime_type"].start_with?("image/", "audio/")
 
       file_data = download_file(file["id"])
       file_path = save_downloaded_file(file_data, file["name"])

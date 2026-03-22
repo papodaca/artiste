@@ -73,12 +73,12 @@ EM.run do
 
     dispatch = Rack::Builder.app do
       if ENV["RACK_ENV"] == "development"
-        use Rack::Static, urls: ["/photos"], root: File.join(File.dirname(__FILE__), "db"),
+        use Rack::Static, urls: %w[/photos /music], root: File.join(File.dirname(__FILE__), "db"),
           header_rules: [[:all, {"Cache-Control" => "public, max-age=86400"}]]
       end
 
       assets_path = File.join(File.dirname(__FILE__), "assets")
-      use Rack::Static, urls: ["/images", "/styles", "/javascript"], root: assets_path,
+      use Rack::Static, urls: %w[/images /styles /javascript], root: assets_path,
         header_rules: [[:all, {"Cache-Control" => "public, max-age=3600"}]]
 
       map "/" do

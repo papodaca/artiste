@@ -22,6 +22,22 @@ RSpec.describe HelpCommand do
 
         command.execute
       end
+
+      it "includes music command documentation" do
+        expect(mattermost).to receive(:respond) do |_msg, response|
+          expect(response).to include("/music <style_prompt>")
+          expect(response).to include("--audio|-a")
+          expect(response).to include("--lyrics|-l")
+          expect(response).to include("--duration|-d")
+          expect(response).to include("--cfg")
+          expect(response).to include("--scheduler")
+          expect(response).to include("--batch|-b")
+          expect(response).to include("--seed")
+          expect(response).to include("--steps|-s")
+        end
+
+        command.execute
+      end
     end
   end
 end

@@ -6,11 +6,11 @@
   "license": "MIT",
   "scripts": {
     "build": "bun build:css -m",
-    "build:css": "tailwindcss -i ./assets/styles/app.css -o ./assets/styles/app.dist.css",
+    "build:css": "bun x --bun @tailwindcss/cli -i ./assets/styles/app.css -o ./assets/styles/app.dist.css",
     "dev": "bun build:css --watch"
   },
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.18",
-    "tailwindcss": "^4.1.18"
+    "@tailwindcss/cli": "^4.2.2",
+    "tailwindcss": "^4.2.2"
   }
 }

@@ -100,6 +100,7 @@ RSpec.describe MattermostOAuthStrategy do
       before do
         mock_response = double("response", code: 400, body: "Bad Request")
         allow(HTTParty).to receive(:post).and_return(mock_response)
+        allow(strategy).to receive(:puts)
       end
 
       it "returns nil on HTTP error" do
@@ -137,6 +138,7 @@ RSpec.describe MattermostOAuthStrategy do
       before do
         mock_response = double("response", code: 401, body: "Unauthorized")
         allow(HTTParty).to receive(:get).and_return(mock_response)
+        allow(strategy).to receive(:puts)
       end
 
       it "returns nil on API error" do
@@ -174,6 +176,7 @@ RSpec.describe MattermostOAuthStrategy do
       before do
         mock_response = double("response", code: 400, body: "Invalid refresh token")
         allow(HTTParty).to receive(:post).and_return(mock_response)
+        allow(strategy).to receive(:puts)
       end
 
       it "returns nil on refresh error" do

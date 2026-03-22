@@ -86,7 +86,28 @@ class HelpCommand < BaseCommand
           /video a beautiful sunset --ar 16:9 --frames 120 --guidance 7.0
           /video make this image animated --image output_20241230_123456.png
           /video add motion to this scene --task 12345
-      
+
+      /music <style_prompt> [options] - Generate music based on a style prompt
+        Options:
+          --audio|-a <url|filename> Specify audio URL or filename for style reference
+          --lyrics|-l <text>        Set lyrics for the generated music
+          --duration|-d <seconds>   Set duration (15-285 seconds, default: 285)
+          --cfg <number>            Set CFG strength (default: 4.0)
+          --scheduler <type>        Set scheduler (euler, midpoint, rk4; default: euler)
+          --batch|-b <number>       Set batch size 1-4 (default: 1)
+          --seed <number>           Set seed for reproducible generation
+          --steps|-s <number>       Set number of generation steps (default: 32)
+
+        You can provide audio in multiple ways:
+          - Attach audio files directly to your message
+          - Use --audio with a URL (e.g., --audio https://example.com/song.mp3)
+          - Use --audio with a filename from a previous generation
+          
+        Examples:
+          /music lo-fi hip hop beats --duration 120
+          /music electronic dance music --lyrics "dancing through the night" --cfg 5.0
+          /music --audio reference_track.mp3 --duration 180
+
       /help - Show this help message
       
       Preset management commands:

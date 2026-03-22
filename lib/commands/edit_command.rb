@@ -20,7 +20,8 @@ class EditCommand < BaseCommand
     end
 
     # Check if we have any image source (attached images, image parameter, or task_id)
-    has_attached_images = message["attached_files"]&.any?
+    attached_images = message["attached_files"]&.select { |f| f.match?(/\.(png|jpg|jpeg|tiff|bmp|webp|gif)$/i) }
+    has_attached_images = attached_images&.any?
     has_image_param = parsed_result[:image].present?
     has_task_id = parsed_result[:task_id].present?
 
@@ -45,14 +46,14 @@ class EditCommand < BaseCommand
     end
 
     image_sources = []
-    image_sources << "attached images" if message["attached_files"]&.any?
+    image_sources << "attached images" if attached_images&.any?
     image_sources << image_params.join(", ") if image_params.any?
     image_sources << "from task " + task_id.to_s if task_id
 
     debug_log("Editing #{image_sources.join(" and ")} with prompt: #{prompt}")
 
     begin
-      total_images = (message["attached_files"]&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
+      total_images = (attached_images&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
       if total_images > 3
         server.respond(message, "❌ You can only edit up to 3 images at a time. You provided #{total_images} images.")
         return
@@ -68,19 +69,17 @@ class EditCommand < BaseCommand
       base64_images = []
 
       # Process attached images first (from message attachments)
-      if message["attached_files"]&.any?
-        message["attached_files"].each do |attached_file|
-          if attached_file.start_with?("http://", "https://")
-            # It's a URL (Discord attachments)
-            image_data = download_image(attached_file)
-          elsif attached_file.start_with?("file://")
-            # It's a local file path (Mattermost attachments)
-            file_path = attached_file.sub("file://", "")
-            image_data = File.binread(file_path)
-            image_data = validate_and_convert_image(image_data, "attached file")
-          end
-          base64_images << Base64.strict_encode64(image_data)
+      attached_images&.each do |attached_file|
+        if attached_file.start_with?("http://", "https://")
+          # It's a URL (Discord attachments)
+          image_data = download_image(attached_file)
+        elsif attached_file.start_with?("file://")
+          # It's a local file path (Mattermost attachments)
+          file_path = attached_file.sub("file://", "")
+          image_data = File.binread(file_path)
+          image_data = validate_and_convert_image(image_data, "attached file")
         end
+        base64_images << Base64.strict_encode64(image_data)
       end
 
       # Process explicitly provided image parameters

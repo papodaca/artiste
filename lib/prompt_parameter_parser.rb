@@ -22,19 +22,26 @@ class PromptParameterParser
   }
 
   PARAMS = {
-    model: {match: %r{(?:--model(?:=|\s+)|-m\s+)([\w-]+)}, clean: %r{(?:--model(?:=|\s+)|-m\s+)[\w-]+}, parse: :to_s},
-    basesize: {match: %r{(?:--basesize(?:=|\s+)|-b\s+)(\d+)}, clean: %r{(?:--basesize(?:=|\s+)|-b\s+)\d+}, parse: :to_i},
-    aspect_ratio: {match: %r{(?:--ar(?:=|\s+)|-a\s+)([^\s-]+)}, clean: %r{(?:--ar(?:=|\s+)|-a\s+)[^\s-]+}, parse: :to_s},
-    shift: {match: %r{(?:--shift(?:=|\s+)|-S\s+)(\d+.?\d*)}, clean: %r{(?:--shift(?:=|\s+)|-S\s+)\d+.?\d*}, parse: :to_f},
-    width: {match: %r{(?:--width(?:=|\s+)|-w\s+)(\d+)}, clean: %r{(?:--width(?:=|\s+)|-w\s+)\d+}, parse: :to_i},
-    height: {match: %r{(?:--height(?:=|\s+)|-h\s+)(\d+)}, clean: %r{(?:--height(?:=|\s+)|-h\s+)(\d+)}, parse: :to_i},
-    steps: {match: %r{(?:--steps(?:=|\s+)|-s\s+)(\d+)}, clean: %r{(?:--steps(?:=|\s+)|-s\s+)\d+}, parse: :to_i},
-    seed: {match: %r{--seed(?:=|\s+)(\d+)}, clean: %r{--seed(?:=|\s+)\d+}, parse: :to_i},
-    negative_prompt: {match: %r{(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))}, clean: %r{(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))}, parse: :strip},
-    preset: {match: %r{(?:--preset(?:=|\s+)|-P\s+)([\w,]+)}, clean: %r{(?:--preset(?:=|\s+)|-P\s+)[\w,]+}, parse: :to_s},
-    private: {match: %r{(--private|-p)}, clean: %r{(--private|-p)}, parse: :present?},
-    image: {match: %r{(?:--image(?:=|\s+)|-i\s*)((?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))(?:\s*,\s*(?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp))))*)}, clean: %r{--image(?:=[^\s]*|\s+[^\s]+)|-i\s+[^\s,]+(?:\s*,\s*[^\s,]+)*}, parse: :split_comma},
-    task_id: {match: %r{(?:--task(?:=|\s+)|-t\s+)(\d+)}, clean: %r{(?:--task(?:=|\s+)|-t\s+)\d+}, parse: :to_i}
+    model: {match: /(?:--model(?:=|\s+)|-m\s+)([\w-]+)/, clean: /(?:--model(?:=|\s+)|-m\s+)[\w-]+/, parse: :to_s},
+    basesize: {match: /(?:--basesize(?:=|\s+)|-b\s+)(\d+)/, clean: /(?:--basesize(?:=|\s+)|-b\s+)\d+/,
+               parse: :to_i},
+    aspect_ratio: {match: /(?:--ar(?:=|\s+)|-a\s+)([^\s-]+)/, clean: /(?:--ar(?:=|\s+)|-a\s+)[^\s-]+/,
+                   parse: :to_s},
+    shift: {match: /(?:--shift(?:=|\s+)|-S\s+)(\d+.?\d*)/, clean: /(?:--shift(?:=|\s+)|-S\s+)\d+.?\d*/,
+            parse: :to_f},
+    width: {match: /(?:--width(?:=|\s+)|-w\s+)(\d+)/, clean: /(?:--width(?:=|\s+)|-w\s+)\d+/, parse: :to_i},
+    height: {match: /(?:--height(?:=|\s+)|-h\s+)(\d+)/, clean: /(?:--height(?:=|\s+)|-h\s+)(\d+)/, parse: :to_i},
+    steps: {match: /(?:--steps(?:=|\s+)|-s\s+)(\d+)/, clean: /(?:--steps(?:=|\s+)|-s\s+)\d+/, parse: :to_i},
+    seed: {match: /--seed(?:=|\s+)(\d+)/, clean: /--seed(?:=|\s+)\d+/, parse: :to_i},
+    negative_prompt: {match: /(?:--no(?:=|\s+)|-n\s+)([^-\s](?:[^-]*(?:\s+[^-]+)*))(?=\s*(?:--|$|\s-[a-zA-Z]))/,
+                      clean: /(?:--no(?:=|\s+)|-n\s+)[^-\s](?:[^-]*(?:\s+[^-]+)*)(?=\s*(?:--|$|\s-[a-zA-Z]))/, parse: :strip},
+    preset: {match: /(?:--preset(?:=|\s+)|-P\s+)([\w,]+)/, clean: /(?:--preset(?:=|\s+)|-P\s+)[\w,]+/,
+             parse: :to_s},
+    private: {match: /(--private|-p)/, clean: /(--private|-p)/, parse: :present?},
+    image: {
+      match: %r{(?:--image(?:=|\s+)|-i\s*)((?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp)))(?:\s*,\s*(?:(?:https?://[^\s,]+)|(?:[^/\s]+\.(?:png|jpg|jpeg|gif|webp))))*)}, clean: /--image(?:=[^\s]*|\s+[^\s]+)|-i\s+[^\s,]+(?:\s*,\s*[^\s,]+)*/, parse: :split_comma
+    },
+    task_id: {match: /(?:--task(?:=|\s+)|-t\s+)(\d+)/, clean: /(?:--task(?:=|\s+)|-t\s+)\d+/, parse: :to_i}
   }
 
   def self.parse(*args)
@@ -47,15 +54,13 @@ class PromptParameterParser
 
   def parse(full_prompt, model, for_preset: false)
     # Check if this is a command (starts with /)
-    if full_prompt.strip.start_with?("/")
-      return CommandDispatcher.parse_command(full_prompt.strip)
-    end
+    return CommandDispatcher.parse_command(full_prompt.strip) if full_prompt.strip.start_with?("/")
 
     result = extract_parameters(full_prompt)
 
     params = {
       model: model || DEFAULT_MODEL,
-      seed: rand(1000000000),
+      seed: rand(1_000_000_000),
       negative_prompt: ""
     }
 
@@ -82,9 +87,7 @@ class PromptParameterParser
       end
     end
 
-    if result[:parsed_params].has_key?(:presets)
-      presets_to_apply.concat(result[:parsed_params][:presets])
-    end
+    presets_to_apply.concat(result[:parsed_params][:presets]) if result[:parsed_params].has_key?(:presets)
 
     # Also handle direct preset names that were found but not stored in :preset
     # (for backward compatibility with existing tests)
@@ -95,9 +98,7 @@ class PromptParameterParser
         # Check if this is a valid preset name (not a regular parameter)
         unless PARAMS.key?(preset_name.to_sym) || PARAMS.any? { |_, v| v[:match].match?("--#{preset_name}") }
           preset = Preset.find_by_name(preset_name)
-          if preset && preset_name != result[:parsed_params][:preset]
-            presets_to_apply << preset_name
-          end
+          presets_to_apply << preset_name if preset && preset_name != result[:parsed_params][:preset]
         end
       end
     end
@@ -109,20 +110,18 @@ class PromptParameterParser
     presets_to_apply.each do |preset_name|
       preset = Preset.find_by_name(preset_name)
 
-      if preset
-        preset_params = preset.parsed_parameters
-        # Merge preset parameters, but don't override existing ones
-        preset_params.each do |key, value|
-          params[key] = value unless result[:parsed_params].has_key?(key)
-          # Mark that these parameters came from a preset so they won't be overridden by defaults
-          params[:"_preset_#{key}"] = true
-        end
+      next unless preset
 
-        # Append preset prompt to the current prompt
-        if preset.prompt && !preset.prompt.empty?
-          result[:clean_text] = "#{result[:clean_text]} #{preset.prompt}".strip
-        end
+      preset_params = preset.parsed_parameters
+      # Merge preset parameters, but don't override existing ones
+      preset_params.each do |key, value|
+        params[key] = value unless result[:parsed_params].has_key?(key)
+        # Mark that these parameters came from a preset so they won't be overridden by defaults
+        params[:"_preset_#{key}"] = true
       end
+
+      # Append preset prompt to the current prompt
+      result[:clean_text] = "#{result[:clean_text]} #{preset.prompt}".strip if preset.prompt && !preset.prompt.empty?
     end
 
     params[:model] = result.dig(:parsed_params, :model) if result[:parsed_params].has_key?(:model)
@@ -142,9 +141,7 @@ class PromptParameterParser
 
     # For preset creation, we need to include derived parameters that should be saved
     # 1. If aspect_ratio is provided, include width and height
-    if explicitly_provided_params.include?(:aspect_ratio)
-      explicitly_provided_params << :width << :height
-    end
+    explicitly_provided_params << :width << :height if explicitly_provided_params.include?(:aspect_ratio)
 
     # 2. If basesize is provided and model-specific default would set width/height, include them
     if explicitly_provided_params.include?(:basesize) && final_params[:width] == final_params[:height]
@@ -224,9 +221,7 @@ class PromptParameterParser
         if preset
           # For backward compatibility with existing tests, only store the first preset in :preset
           # and ignore subsequent ones (but still apply them for parameter merging)
-          unless params[:preset]
-            params[:preset] = preset_name
-          end
+          params[:preset] = preset_name unless params[:preset]
           # Remove the direct preset reference from text
           clean_text.gsub!("--#{preset_name}", "")
         end

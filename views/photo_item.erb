@@ -24,6 +24,14 @@
   >
     <% if is_video(path) %>
       <video src="/photos/<%= path %>" class="block h-64 w-full object-cover" autoplay muted loop ></video>
+    <% elsif is_audio(path) %>
+      <div class="relative h-64 w-full overflow-hidden">
+        <% cover_path = get_album_cover_path(path) %>
+        <img src="<%= cover_path || '/images/album.png' %>" alt="Audio" class="block h-full w-full object-cover" />
+        <div class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center p-3" onclick="event.preventDefault(); event.stopPropagation();">
+          <audio src="/music/<%= path %>" controls class="w-64"></audio>
+        </div>
+      </div>
     <% else %>
       <img src="/photos/<%= path %>" alt="<%= get_filename(path) %>" class="block h-64 w-full object-cover" />
     <% end %>
@@ -45,7 +53,7 @@
     type="button"
     data-turbo="false"
     data-controller="copy"
-    data-copy-photo-path-value="/photos/<%= path %>"
+    data-copy-photo-path-value="/<%= is_audio(path) ? "music" : "photos" %>/<%= path %>"
     data-action="click->copy#copy"
     class="absolute size-10 right-2 top-2 z-10 rounded-full bg-white/50 p-2 text-gray-800 shadow-md backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-lg dark:bg-gray-800/50 dark:text-gray-200 dark:hover:bg-gray-800"
     aria-label="Copy image URL to clipboard"

@@ -11,7 +11,7 @@
         >
           <div class="p-6">
             <div class="mb-4 flex items-center justify-between">
-              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Photo Details</h2>
+              <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200"><% if is_audio(photo_details[:photo_path]) %>Music<% elsif is_video(photo_details[:photo_path]) %>Video<% else %>Photo<% end %> Details</h2>
               <button
                 type="button"
                 data-action="click->modal#close"
@@ -33,6 +33,21 @@
                       muted
                       loop
                     ></video>
+                  <% elsif is_audio(photo_details[:photo_path]) %>
+                    <div class="relative min-h-[200px] w-full rounded-lg shadow-lg overflow-hidden">
+                      <% cover_path = get_album_cover_path(photo_details[:photo_path]) %>
+                      <img src="<%= cover_path || '/images/album.png' %>" alt="Audio" class="block h-full w-full object-cover" />
+                      <div class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center p-4">
+                        <audio src="/music/<%= photo_details[:photo_path] %>" controls class="w-full max-w-md"></audio>
+                      </div>
+                    </div>
+                    <% lyrics = get_lyrics(photo_details) %>
+                    <% if lyrics && !lyrics.empty? %>
+                      <div class="mt-4 text-left">
+                        <h3 class="mb-2 text-lg font-bold text-gray-800 dark:text-gray-200">Lyrics</h3>
+                        <div class="rounded-lg bg-gray-100 p-4 font-mono text-sm whitespace-pre-wrap text-gray-800 dark:bg-gray-700 dark:text-gray-200"><%= escape_html(lyrics) %></div>
+                      </div>
+                    <% end %>
                   <% else %>
                     <img
                       src="/photos/<%= photo_details[:photo_path] %>"

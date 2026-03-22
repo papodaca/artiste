@@ -22,14 +22,12 @@ class ChutesHttpClient
       body: payload.to_json,
       headers: @default_headers)
 
-    if response.success?
-      {
-        image_data: response.body,
-        prompt_id: response.headers["x-chutes-invocationid"]
-      }
-    else
-      raise "Failed to generate image: #{response.code} - #{response.body}"
-    end
+    raise "Failed to generate image: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      image_data: response.body,
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
   end
 
   # Generate image edit using Chutes API (different endpoint)
@@ -39,18 +37,16 @@ class ChutesHttpClient
       body: payload.to_json,
       timeout: 500)
 
-    if response.success?
-      {
-        image_data: response.body,
-        prompt_id: response.headers["x-chutes-invocationid"]
-      }
-    else
-      raise "Failed to generate image edit: #{response.code} - #{response.body}"
-    end
+    raise "Failed to generate image edit: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      image_data: response.body,
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
   end
 
   # Generate video using Chutes API
-  def generate_video(payload, &block)
+  def generate_video(payload)
     tries = 0
     response = retry_on_failure do
       tries += 1
@@ -59,34 +55,45 @@ class ChutesHttpClient
         timeout: 1000 * 1000)
     end
 
-    if response.success?
-      {
-        video_data: response.body,
-        prompt_id: response.headers["x-chutes-invocationid"]
-      }
-    else
-      raise "Failed to generate video: #{response.code} - #{response.body}"
-    end
+    raise "Failed to generate video: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      video_data: response.body,
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
   end
 
   # Generate video from image using Chutes API
   def generate_image2video(payload, wan_version = "2.1")
-    endpoint = (wan_version == "2.2") ?
-      "https://chutes-wan-2-2-i2v-14b-fast.chutes.ai/generate" :
+    endpoint = if wan_version == "2.2"
+      "https://chutes-wan-2-2-i2v-14b-fast.chutes.ai/generate"
+    else
       "https://chutes-wan2-1-14b.chutes.ai/image2video"
+    end
 
     response = self.class.post(endpoint,
       body: payload.to_json,
       timeout: 1000 * 1000)
 
-    if response.success?
-      {
-        video_data: response.body,
-        prompt_id: response.headers["x-chutes-invocationid"]
-      }
-    else
-      raise "Failed to generate video from image: #{response.code} - #{response.body}"
-    end
+    raise "Failed to generate video from image: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      video_data: response.body,
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
+  end
+
+  def generate_music(payload)
+    response = self.class.post("https://chutes-diffrhythm.chutes.ai/generate",
+      body: payload.to_json,
+      timeout: 1000 * 1000)
+
+    raise "Failed to generate music: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      audio_data: response.body,
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
   end
 
   private

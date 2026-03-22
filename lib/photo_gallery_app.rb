@@ -53,9 +53,7 @@ class PhotoGalleryApp < Sinatra::Base
     if current_user.authenticated?
       if current_user.admin?
         # Admin users can see everything based on query parameters
-        if !show_deleted
-          tasks = tasks.where(deleted_at: nil)
-        end
+        tasks = tasks.where(deleted_at: nil) unless show_deleted
 
         tasks = if !show_private
           # Hide other users' private items, show own private items
@@ -88,18 +86,18 @@ class PhotoGalleryApp < Sinatra::Base
       # file_path returns the directory path like "db/photos/YYYY/MM/DD"
       dir = task.file_path
       # Remove the "db/photos/" prefix to get just YYYY/MM/DD
-      date_path = dir.gsub(/^db\/photos\//, "")
+      date_path = dir.gsub(%r{^db/photos/}, "")
       # Combine with output filename
-      if task.output_filename
-        {
-          is_private: task.send(:private),
-          is_deleted: task.deleted_at.present?,
-          path: File.join(date_path, task.output_filename),
-          id: task.id,
-          owner_id: task.user_id,
-          username: task.username || task.user_id
-        }
-      end
+      next unless task.output_filename
+
+      {
+        is_private: task.send(:private),
+        is_deleted: task.deleted_at.present?,
+        path: File.join(date_path, task.output_filename),
+        id: task.id,
+        owner_id: task.user_id,
+        username: task.username || task.user_id
+      }
     end.compact # Remove any nil entries
 
     # Apply pagination if specified
@@ -120,6 +118,28 @@ class PhotoGalleryApp < Sinatra::Base
     path.downcase.end_with?(".mp4")
   end
 
+  def is_audio(path)
+    path.downcase.end_with?(".m4a", ".mp3", ".wav")
+  end
+
+  def get_lyrics(details)
+    lyrics = details&.dig(:task, :parameters, "lyrics")&.strip
+    lyrics.split("\n").map(&:strip).reject(&:blank?).join("\n")
+  rescue JSON::ParserError
+    nil
+  end
+
+  def get_album_cover_path(audio_path)
+    return nil unless audio_path
+
+    base_name = File.basename(audio_path, ".*")
+    dir = File.dirname(audio_path)
+    cover_relative_path = "#{dir}/cover_#{base_name}.png"
+    cover_full_path = File.join("db", "music", cover_relative_path)
+
+    File.exist?(cover_full_path) ? "/music/#{cover_relative_path}" : nil
+  end
+
   def get_status_class(status)
     case status
     when "completed"
@@ -135,6 +155,7 @@ class PhotoGalleryApp < Sinatra::Base
 
   def format_date(date_string)
     return "N/A" unless date_string
+
     begin
       date = Date.parse(date_string)
       date.strftime("%B %d, %Y at %I:%M %p")
@@ -153,6 +174,7 @@ class PhotoGalleryApp < Sinatra::Base
 
   def format_json(obj)
     return "" unless obj && !obj.empty?
+
     JSON.pretty_generate(obj)
   rescue
     obj.to_s
@@ -232,7 +254,7 @@ class PhotoGalleryApp < Sinatra::Base
   # Helper method to check if IP is in allowed ranges
   def ip_allowed?(ip)
     # Allow localhost
-    return true if ip == "127.0.0.1" || ip == "::1"
+    return true if ["127.0.0.1", "::1"].include?(ip)
 
     # Check if IP is within the configured CIDR range
     cidr_range = ENV["ARTISTE_BROADCAST_CIDR"]
@@ -277,9 +299,7 @@ class PhotoGalleryApp < Sinatra::Base
   def get_photo_details(id)
     task = GenerationTask[id.to_i]
 
-    if task.nil?
-      return {error: "Generation task not found for ID #{id}"}
-    end
+    return {error: "Generation task not found for ID #{id}"} if task.nil?
 
     # Safely parse parameters JSON
     parameters = {}
@@ -305,7 +325,7 @@ class PhotoGalleryApp < Sinatra::Base
 
     # Construct the photo path
     dir = task.file_path
-    date_path = dir.gsub(/^db\/photos\//, "")
+    date_path = dir.gsub(%r{^db/photos/}, "")
     photo_path = File.join(date_path, task.output_filename) if task.output_filename
 
     {
@@ -402,9 +422,7 @@ class PhotoGalleryApp < Sinatra::Base
         total_requested: photo_ids.length
       }
 
-      if errors.any?
-        response[:errors] = errors
-      end
+      response[:errors] = errors if errors.any?
 
       response.to_json
     rescue JSON::ParserError
@@ -462,9 +480,7 @@ class PhotoGalleryApp < Sinatra::Base
         total_requested: photo_ids.length
       }
 
-      if errors.any?
-        response[:errors] = errors
-      end
+      response[:errors] = errors if errors.any?
 
       response.to_json
     rescue JSON::ParserError
@@ -522,9 +538,7 @@ class PhotoGalleryApp < Sinatra::Base
         total_requested: photo_ids.length
       }
 
-      if errors.any?
-        response[:errors] = errors
-      end
+      response[:errors] = errors if errors.any?
 
       response.to_json
     rescue JSON::ParserError
@@ -603,7 +617,7 @@ class PhotoGalleryApp < Sinatra::Base
       return "Invalid state parameter. Authentication failed."
     end
 
-    if !code
+    unless code
       status 400
       return "Authorization code not provided. Authentication failed."
     end
@@ -620,7 +634,7 @@ class PhotoGalleryApp < Sinatra::Base
     # Get user information
     user_info = oauth_strategy.get_user_info(access_token_data[:access_token])
 
-    if !user_info
+    unless user_info
       status 500
       return "Failed to obtain user information. Authentication failed."
     end
@@ -648,11 +662,11 @@ class PhotoGalleryApp < Sinatra::Base
 
   # Authentication helper for protected routes
   def authenticate!
-    unless current_user.authenticated?
-      # Store the requested URL to redirect after login
-      session[:return_to] = request.fullpath
-      redirect to("/auth/login")
-    end
+    return if current_user.authenticated?
+
+    # Store the requested URL to redirect after login
+    session[:return_to] = request.fullpath
+    redirect to("/auth/login")
   end
 
   # Register the OpenAI API middleware
