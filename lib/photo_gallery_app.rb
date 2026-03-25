@@ -1,4 +1,6 @@
 class PhotoGalleryApp < Sinatra::Base
+  include Logging
+
   # Set up the web server
   set :port, 4567
   set :bind, "0.0.0.0"
@@ -15,9 +17,8 @@ class PhotoGalleryApp < Sinatra::Base
   # Default batch size for infinite scrolling
   PHOTO_BATCH_SIZE = 20
 
-  def initialize(photos_path = File.join(settings.root, "..", "db", "photos"), debug_mode = false)
+  def initialize(photos_path = File.join(settings.root, "..", "db", "photos"))
     @photos_path = photos_path
-    @debug_mode = debug_mode
     super()
     # Only start WebSocket server if not in test environment
     start_websocket_server unless ENV["RACK_ENV"] == "test"
@@ -29,13 +30,16 @@ class PhotoGalleryApp < Sinatra::Base
     set :views, File.join(settings.root, "..", "views")
   end
 
+  configure :development do
+    set :show_exceptions, true
+  end
+
   def start_websocket_server
     # Start WebSocket server in a separate thread
     Thread.new do
       PhotoGalleryWebSocket.start_server(host: "0.0.0.0", port: 4568)
     rescue => e
-      puts "Failed to start WebSocket server: #{e.message}"
-      puts e.backtrace.join("\n")
+      error "Failed to start WebSocket server: #{e.message}\n#{e.backtrace.join("\n")}"
     end
     sleep 0.1 # Give the thread a moment to start
   end
@@ -244,12 +248,8 @@ class PhotoGalleryApp < Sinatra::Base
 
       erb :photo_details, layout: false, locals: {photo_details: photo_details, error: nil}
     rescue => e
-      # Log the error for debugging
-      puts "Error in /photo-details/: #{e.class.name}: #{e.message}"
-      puts e.backtrace.join("\n")
-
-      error = "Internal server error: #{e.class.name}: #{e.message}"
-      erb :photo_details, layout: false, locals: {photo_details: nil, error: error}
+      error "Error in /photo-details/: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}"
+      erb :photo_details, layout: false, locals: {photo_details: nil, error: "Internal server error: #{e.class.name}: #{e.message}"}
     end
   end
 
@@ -277,7 +277,7 @@ class PhotoGalleryApp < Sinatra::Base
       # Check if IP is in the network range
       (ip_int & mask) == (network_int & mask)
     rescue => e
-      puts "Error parsing CIDR range #{cidr_range}: #{e.message}"
+      error "Error parsing CIDR range #{cidr_range}: #{e.message}"
       false
     end
   end
@@ -374,7 +374,7 @@ class PhotoGalleryApp < Sinatra::Base
       status 400
       {error: "Invalid JSON"}.to_json
     rescue => e
-      puts "Error processing broadcast: #{e.message}"
+      error "Error processing broadcast: #{e.message}"
       status 500
       {error: "Internal server error"}.to_json
     end
@@ -431,8 +431,7 @@ class PhotoGalleryApp < Sinatra::Base
       status 400
       {error: "Invalid JSON"}.to_json
     rescue => e
-      puts "Error processing delete request: #{e.message}"
-      puts e.backtrace.join("\n")
+      error "Error processing delete request: #{e.message}\n#{e.backtrace.join("\n")}"
       status 500
       {error: "Internal server error"}.to_json
     end
@@ -489,8 +488,7 @@ class PhotoGalleryApp < Sinatra::Base
       status 400
       {error: "Invalid JSON"}.to_json
     rescue => e
-      puts "Error processing make-private request: #{e.message}"
-      puts e.backtrace.join("\n")
+      error "Error processing make-private request: #{e.message}\n#{e.backtrace.join("\n")}"
       status 500
       {error: "Internal server error"}.to_json
     end
@@ -547,8 +545,7 @@ class PhotoGalleryApp < Sinatra::Base
       status 400
       {error: "Invalid JSON"}.to_json
     rescue => e
-      puts "Error processing make-public request: #{e.message}"
-      puts e.backtrace.join("\n")
+      error "Error processing make-public request: #{e.message}\n#{e.backtrace.join("\n")}"
       status 500
       {error: "Internal server error"}.to_json
     end
@@ -565,12 +562,8 @@ class PhotoGalleryApp < Sinatra::Base
 
       erb :presets_details, layout: false, locals: {presets: presets, error: nil}
     rescue => e
-      # Log the error for debugging
-      puts "Error in /presets: #{e.class.name}: #{e.message}"
-      puts e.backtrace.join("\n")
-
-      error = "Internal server error: #{e.class.name}: #{e.message}"
-      erb :presets_details, layout: false, locals: {presets: nil, error: error}
+      error "Error in /presets: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}"
+      erb :presets_details, layout: false, locals: {presets: nil, error: "Internal server error: #{e.class.name}: #{e.message}"}
     end
   end
 
@@ -582,17 +575,13 @@ class PhotoGalleryApp < Sinatra::Base
       redirect to("/?modal=info") unless request.env["HTTP_TURBO_FRAME"].present?
 
       # Get help text from HelpCommand
-      help_command = HelpCommand.new(nil, nil, nil, @debug_mode)
+      help_command = HelpCommand.new(nil, nil, nil)
       help_text = help_command.help_text
 
       erb :info_details, layout: false, locals: {help_text: help_text, error: nil}
     rescue => e
-      # Log the error for debugging
-      puts "Error in /info: #{e.class.name}: #{e.message}"
-      puts e.backtrace.join("\n")
-
-      error = "Internal server error: #{e.class.name}: #{e.message}"
-      erb :info_details, layout: false, locals: {help_text: nil, error: error}
+      error "Error in /info: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}"
+      erb :info_details, layout: false, locals: {help_text: nil, error: "Internal server error: #{e.class.name}: #{e.message}"}
     end
   end
 

@@ -1,9 +1,7 @@
 #!/usr/bin/env ruby
 require "optparse"
-require "fileutils"
 require_relative "config/environment"
 
-# Parse command line arguments
 options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: app.rb [options]"
@@ -16,7 +14,7 @@ OptionParser.new do |opts|
     options[:web] = v
   end
 
-  opts.on("-d", "--dev", "Enable development mode (debug + web server + yarn dev)") do |v|
+  opts.on("-d", "--dev", "Enable development mode (debug + web server + bun dev)") do |v|
     options[:dev] = v
   end
 
@@ -26,136 +24,37 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-# Set debug flag globally
-# Enable debug mode if --debug or --dev flag is used
-DEBUG_MODE = (options[:debug] || options[:dev] || false).freeze
-
-# Enable web server if --web or --dev flag is used
 options[:web] = true if options[:dev]
 
-def debug_log(message)
-  puts "[DEBUG] #{Time.now.strftime("%Y-%m-%d %H:%M:%S")} - #{message}" if DEBUG_MODE
-end
-
-bun_dev_pid = nil
 if options[:dev]
+  ENV["RACK_ENV"] = "development"
+
+  Bundler.require(:default, :development)
+
   bun_dev_pid = Process.spawn("bun dev")
-  debug_log("Started yarn dev with PID #{bun_dev_pid}")
-
-  # Set up a trap to clean up the yarn dev process on exit
+  Logging.info "Started bun dev with PID #{bun_dev_pid}"
   at_exit do
-    if bun_dev_pid
-      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
-      Process.kill("TERM", bun_dev_pid)
-      Process.wait(bun_dev_pid)
-    end
-  end
-end
-
-EM.run do
-  debug_log("Starting application in #{DEBUG_MODE ? "DEBUG" : "NORMAL"} mode")
-  debug_log("Environment variables - ARTISTE_SERVER: #{ENV["ARTISTE_SERVER"] || "mattermost"}")
-  debug_log("Environment variables - MATTERMOST_URL: #{ENV["MATTERMOST_URL"] ? "SET" : "NOT SET"}")
-  debug_log("Environment variables - MATTERMOST_TOKEN: #{ENV["MATTERMOST_TOKEN"] ? "SET" : "NOT SET"}")
-  debug_log("Environment variables - MATTERMOST_CHANNELS: #{ENV["MATTERMOST_CHANNELS"] || "NOT SET"}")
-  debug_log("Environment variables - DISCORD_TOKEN: #{ENV["DISCORD_TOKEN"] ? "SET" : "NOT SET"}")
-  debug_log("Environment variables - DISCORD_CHANNELS: #{ENV["DISCORD_CHANNELS"] || "NOT SET"}")
-  debug_log("Environment variables - ARTISTE_IMAGE_GENERATION: #{ENV["ARTISTE_IMAGE_GENERATION"] || "comfyu"}")
-  debug_log("Environment variables - COMFYUI_URL: #{ENV["COMFYUI_URL"] || "http://localhost:8188"}")
-  debug_log("Environment variables - COMFYUI_TOKEN: #{ENV["COMFYUI_TOKEN"] ? "SET" : "NOT SET"}")
-  debug_log("Environment variables - CHUTES_TOKEN: #{ENV["CHUTES_TOKEN"] ? "SET" : "NOT SET"}")
-  debug_log("Environment variables - ARTISTE_PEER_URL: #{ENV["ARTISTE_PEER_URL"] || "NOT SET"}")
-  debug_log("Environment variables - ARTISTE_BROADCAST_CIDR: #{ENV["ARTISTE_BROADCAST_CIDR"] ? "SET" : "NOT SET"}")
-
-  if options[:web].present?
-    photos_dir = File.join(File.dirname(__FILE__), "db", "photos")
-    web_app = PhotoGalleryApp.new(photos_dir, DEBUG_MODE)
-
-    dispatch = Rack::Builder.app do
-      if ENV["RACK_ENV"] == "development"
-        use Rack::Static, urls: %w[/photos /music], root: File.join(File.dirname(__FILE__), "db"),
-          header_rules: [[:all, {"Cache-Control" => "public, max-age=86400"}]]
-      end
-
-      assets_path = File.join(File.dirname(__FILE__), "assets")
-      use Rack::Static, urls: %w[/images /styles /javascript], root: assets_path,
-        header_rules: [[:all, {"Cache-Control" => "public, max-age=3600"}]]
-
-      map "/" do
-        run web_app
-      end
-    end
-
-    server = Thin::Server.new("0.0.0.0", 4567, dispatch)
-    server.start
+    Logging.info "Terminating bun dev (PID #{bun_dev_pid})"
+    Process.kill("TERM", bun_dev_pid)
+    Process.wait(bun_dev_pid)
   end
 
-  server_strategy = ServerStrategy.create
-
-  Signal.trap("INT") do
-    debug_log("Received INT signal, shutting down...")
-    # Terminate yarn dev process if it's running
-    if bun_dev_pid
-      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
-      Process.kill("TERM", bun_dev_pid)
-      Process.wait(bun_dev_pid)
-    end
-    server.stop if defined?(server) && server
-    EM.stop
+  restart = false
+  root = File.dirname(__FILE__)
+  listener = Listen.to(File.join(root, "lib"), only: /\.rb$/) do |modified, added, removed|
+    changed = (modified + added + removed).map { |f| f.sub("#{root}/", "") }
+    Logging.info "#{changed.join(", ")} changed — reloading..."
+    restart = true
+    EM.next_tick { EM.stop } if EM.reactor_running?
   end
+  listener.start
 
-  Signal.trap("TERM") do
-    debug_log("Received TERM signal, shutting down...")
-    # Terminate yarn dev process if it's running
-    if bun_dev_pid
-      debug_log("Terminating yarn dev process (PID #{bun_dev_pid})")
-      Process.kill("TERM", bun_dev_pid)
-      Process.wait(bun_dev_pid)
-    end
-    server.stop if defined?(server) && server
-    EM.stop
+  loop do
+    LOADER.reload if restart
+    restart = false
+    Artiste.new(options).start
+    break unless restart
   end
-
-  debug_log("Initialized #{ENV["ARTISTE_SERVER"] || "mattermost"} server and #{ENV["ARTISTE_IMAGE_GENERATION"] || "comfyui"} client")
-
-  server_strategy.connect do |message|
-    debug_log("Received message from #{ENV["ARTISTE_SERVER"] || "mattermost"} server")
-    debug_log("Message data: #{message.inspect}") if DEBUG_MODE
-    # Get or create user settings
-    user_id = nil
-    username = "unknown"
-    if server_strategy.is_a?(MattermostServerStrategy)
-      user_id = message.dig("data", "post", "user_id")
-      username = message.dig("data", "channel_display_name")&.gsub(/@/, "") || message.dig("user", "username") || "unknown"
-    elsif server_strategy.is_a?(DiscordServerStrategy)
-      user_id = message["user"].id
-      username = message["user"].username
-    end
-
-    debug_log("Processing message for user_id: #{user_id}, username: #{username}")
-
-    user_settings = UserSettings.get_or_create_for_user(user_id, username)
-
-    full_prompt = message["message"].gsub(/<?@\w+>?\s*/, "").strip
-    debug_log("Extracted prompt: '#{full_prompt}'")
-
-    if full_prompt.empty?
-      server_strategy.respond(message, "Please provide a prompt for image generation!")
-      next
-    end
-
-    # Parse the prompt/command first
-    parsed_params = PromptParameterParser.parse(full_prompt, user_settings.parsed_prompt_params[:model])
-    debug_log("Parsed parameters: #{parsed_params.inspect}")
-
-    unless parsed_params.has_key?(:type)
-      parsed_params[:type] = :generate
-      debug_log("Assuming command is generate")
-    end
-
-    debug_log("Handling command of type: #{parsed_params[:type]}")
-    EM.defer do
-      CommandDispatcher.execute(server_strategy, message, parsed_params, user_settings, DEBUG_MODE)
-    end
-  end
+else
+  Artiste.new(options).start
 end

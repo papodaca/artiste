@@ -13,9 +13,10 @@ Bundler.require
 require "tilt/erb"
 require "sinatra/base"
 
-Zeitwerk::Loader.new.tap do |loader|
+LOADER = Zeitwerk::Loader.new.tap do |loader|
   loader.push_dir("lib")
   loader.push_dir("lib/commands")
+  loader.enable_reloading
   loader.setup
 end
 

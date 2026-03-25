@@ -1,6 +1,6 @@
 class ListPresetsCommand < BaseCommand
   def execute
-    debug_log("Handling list presets command")
+    debug("Handling list presets command")
 
     presets = Preset.order(:name).all
 
@@ -38,7 +38,7 @@ class ListPresetsCommand < BaseCommand
 
     server.respond(message, response_parts.join("\n"))
   rescue => e
-    debug_log("Error listing presets: #{e.message}\n#{e.backtrace.join("\n")}")
+    debug("Error listing presets: #{e.message}\n#{e.backtrace.join("\n")}")
     server.respond(message, "❌ Error listing presets: #{e.message}")
   end
 end

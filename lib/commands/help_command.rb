@@ -120,7 +120,7 @@ class HelpCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling help command")
+    debug("Handling help command")
     server.respond(message, help_text)
   end
 end

@@ -12,7 +12,7 @@ class CreatePresetCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling create preset command")
+    debug("Handling create preset command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -63,7 +63,7 @@ class CreatePresetCommand < BaseCommand
     )
 
     if preset.save
-      debug_log("Preset saved successfully: #{preset_name}")
+      debug("Preset saved successfully: #{preset_name}")
       response = "✅ Preset '#{preset_name}' created successfully!\n" \
                 "📝 Prompt: #{final_params[:prompt]}\n" \
                 "⚙️ Parameters: #{parameters_to_save.inspect}"
@@ -74,11 +74,11 @@ class CreatePresetCommand < BaseCommand
 
       server.respond(message, response)
     else
-      debug_log("Failed to save preset: #{preset.errors.full_messages.join(", ")}")
+      debug("Failed to save preset: #{preset.errors.full_messages.join(", ")}")
       server.respond(message, "❌ Failed to create preset '#{preset_name}'. Please try again.")
     end
   rescue => e
-    debug_log("Error creating preset: #{e.message}\n#{e.backtrace.join("\n")}")
+    debug("Error creating preset: #{e.message}\n#{e.backtrace.join("\n")}")
     server.respond(message, "❌ Error creating preset: #{e.message}")
   end
 

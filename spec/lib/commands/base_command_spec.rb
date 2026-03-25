@@ -14,7 +14,7 @@ RSpec.describe BaseCommand do
   let(:message) { {"data" => {"post" => {"id" => "post-id"}}} }
   let(:parsed_result) { {type: :test_command} }
   let(:user_settings) { {theme: "dark", notifications: true} }
-  let(:command) { test_command_class.new(mattermost, message, parsed_result, user_settings, false) }
+  let(:command) { test_command_class.new(mattermost, message, parsed_result, user_settings) }
 
   describe "#initialize" do
     it "sets mattermost instance variable" do
@@ -34,7 +34,7 @@ RSpec.describe BaseCommand do
     end
 
     context "when parsed_result is not provided" do
-      let(:command) { test_command_class.new(mattermost, message, nil, user_settings, false) }
+      let(:command) { test_command_class.new(mattermost, message, nil, user_settings) }
 
       it "sets parsed_result to nil" do
         expect(command.parsed_result).to be_nil
@@ -42,7 +42,7 @@ RSpec.describe BaseCommand do
     end
 
     context "when user_settings is not provided" do
-      let(:command) { test_command_class.new(mattermost, message, parsed_result, nil, false) }
+      let(:command) { test_command_class.new(mattermost, message, parsed_result, nil) }
 
       it "sets user_settings to nil" do
         expect(command.user_settings).to be_nil
@@ -52,40 +52,14 @@ RSpec.describe BaseCommand do
 
   describe "#execute" do
     it "raises NotImplementedError" do
-      base_command = described_class.new(mattermost, message, nil, nil, false)
-      expect { base_command.execute }.to raise_error(NotImplementedError, "Subclasses must implement the execute method")
+      base_command = described_class.new(mattermost, message, nil, nil)
+      expect do
+        base_command.execute
+      end.to raise_error(NotImplementedError, "Subclasses must implement the execute method")
     end
 
     it "can be overridden in subclasses" do
       expect(command.execute).to eq("Test execution")
-    end
-  end
-
-  describe "#debug_log" do
-    let(:debug_message) { "This is a debug message" }
-
-    context "when debug_log_enabled is true" do
-      let(:command) { test_command_class.new(mattermost, message, parsed_result, user_settings, true) }
-
-      it "outputs debug message to stdout with [DEBUG] prefix" do
-        expect { command.send(:debug_log, debug_message) }.to output("[DEBUG] #{Time.now.strftime("%Y-%m-%d %H:%M:%S")} - #{debug_message}\n").to_stdout
-      end
-    end
-
-    context "when debug_log_enabled is false" do
-      let(:command) { test_command_class.new(mattermost, message, parsed_result, user_settings, false) }
-
-      it "does not output anything" do
-        expect { command.send(:debug_log, debug_message) }.not_to output.to_stdout
-      end
-    end
-
-    context "when debug_log_enabled is not provided (defaults to false)" do
-      let(:command) { test_command_class.new(mattermost, message, parsed_result, user_settings) }
-
-      it "does not output anything" do
-        expect { command.send(:debug_log, debug_message) }.not_to output.to_stdout
-      end
     end
   end
 

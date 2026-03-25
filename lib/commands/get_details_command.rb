@@ -6,20 +6,20 @@ class GetDetailsCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling get details command")
+    debug("Handling get details command")
     image_name = parsed_result[:image_name]
-    debug_log("Looking up details for image: #{image_name}")
+    debug("Looking up details for image: #{image_name}")
 
     # Look up generation task by output filename
     task = GenerationTask.where(output_filename: image_name).first || GenerationTask.where(prompt_id: image_name).first
 
     if task.nil?
-      debug_log("No generation task found for image: #{image_name}")
+      debug("No generation task found for image: #{image_name}")
       server.respond(message, "❌ No generation details found for image: `#{image_name}`\n\nMake sure you're using the exact filename as it appears in the generated image.")
       return
     end
 
-    debug_log("Found generation task ##{task.id} for image: #{image_name}")
+    debug("Found generation task ##{task.id} for image: #{image_name}")
 
     # Try to read EXIF data from the actual image file
     exif_data = task.parsed_exif_data

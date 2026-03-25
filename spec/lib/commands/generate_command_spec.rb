@@ -7,8 +7,8 @@ RSpec.describe GenerateCommand do
   let(:discord_message) { {"user" => double(id: "user-id", username: "testuser"), "message" => "a beautiful sunset --ar 16:9"} }
   let(:parsed_result) { {prompt: "a beautiful sunset", ar: "16:9"} }
   let(:user_settings) { double("UserSettings", user_id: "user-id", username: "testuser", parsed_prompt_params: {model: "flux"}) }
-  let(:command) { described_class.new(mattermost, message, parsed_result, user_settings, false) }
-  let(:discord_command) { described_class.new(discord, discord_message, parsed_result, user_settings, false) }
+  let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
+  let(:discord_command) { described_class.new(discord, discord_message, parsed_result, user_settings) }
   let(:reply) { {"id" => "reply-id"} }
   let(:generation_task) { double("GenerationTask", id: 1, username: "testuser", prompt: "a beautiful sunset", workflow_type: "flux", status: "pending", private: false, file_path: "db/photos/test", output_filename: "test.png", completed_at: Time.now, prompt_id: nil, to_h: {}) }
 

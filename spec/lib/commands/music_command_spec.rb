@@ -163,7 +163,7 @@ RSpec.describe MusicCommand do
     let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
 
     before do
-      allow(command).to receive(:debug_log)
+      allow(command).to receive(:debug)
       allow(GenerationTask).to receive(:create).and_return(task)
       allow(task).to receive(:mark_processing)
       allow(task).to receive(:mark_completed)

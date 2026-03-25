@@ -5,7 +5,7 @@ RSpec.describe TextCommand do
   let(:message) { {"data" => {"post" => {"id" => "post-id", "channel_id" => "channel-id"}}} }
   let(:parsed_result) { {model: "openai/gpt-oss-120b-TEE", prompt: "Hello, how are you?"} }
   let(:user_settings) { nil }
-  let(:command) { described_class.new(mattermost, message, parsed_result, user_settings, false) }
+  let(:command) { described_class.new(mattermost, message, parsed_result, user_settings) }
   let(:reply) { {"id" => "reply-id"} }
 
   before do

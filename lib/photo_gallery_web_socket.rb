@@ -2,6 +2,8 @@ require "openssl"
 require "base64"
 
 class PhotoGalleryWebSocket
+  extend Logging
+
   class RenderContext
     include Sinatra::Helpers
 
@@ -77,7 +79,7 @@ class PhotoGalleryWebSocket
 
     def start_server(host: "0.0.0.0", port: 4568)
       connections # Initialize connections
-      puts "Starting WebSocket server on #{host}:#{port}"
+      info "Starting WebSocket server on #{host}:#{port}"
 
       EM.run do
         WebSocket::EventMachine::Server.start(host: host, port: port) do |ws|
@@ -103,7 +105,7 @@ class PhotoGalleryWebSocket
           end
         end
 
-        puts "WebSocket server started on #{host}:#{port}"
+        info "WebSocket server started on #{host}:#{port}"
       end
     end
 
@@ -124,7 +126,7 @@ class PhotoGalleryWebSocket
         message_json = {}.merge(message).merge(html: message_text).to_json
         conn.websocket.send(message_json) if target_user_id.nil? || conn.user_id == target_user_id
       rescue => e
-        puts "Error broadcasting message: #{e.message}"
+        error "Error broadcasting message: #{e.message}\n#{e.backtrace.join("\n")}"
         connections.delete(conn)
       end
     end
@@ -149,10 +151,10 @@ class PhotoGalleryWebSocket
         response = http.request(request)
 
         unless response.is_a?(Net::HTTPSuccess)
-          puts "Failed to forward message to peer: #{response.code} #{response.message}"
+          warn "Failed to forward message to peer: #{response.code} #{response.message}"
         end
       rescue => e
-        puts "Error forwarding message to peer: #{e.message}"
+        error "Error forwarding message to peer: #{e.message}"
       end
     end
 
@@ -231,8 +233,7 @@ class PhotoGalleryWebSocket
           return user_info["id"]
         end
       rescue => e
-        puts "Error decoding session: #{e.message}"
-        puts e.backtrace.first(5).join("\n")
+        error "Error decoding session: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
       end
 
       nil

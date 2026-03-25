@@ -11,7 +11,7 @@ class ShowPresetCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling show preset command")
+    debug("Handling show preset command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -55,7 +55,7 @@ class ShowPresetCommand < BaseCommand
 
     server.respond(message, response_parts.join("\n"))
   rescue => e
-    debug_log("Error showing preset: #{e.message}\n#{e.backtrace.join("\n")}")
+    debug("Error showing preset: #{e.message}\n#{e.backtrace.join("\n")}")
     server.respond(message, "❌ Error showing preset: #{e.message}")
   end
 end

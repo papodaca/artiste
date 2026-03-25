@@ -1,4 +1,6 @@
 class DiscordServerStrategy < ServerStrategy
+  include Logging
+
   def initialize(*args, **kwargs)
     @discord_token = kwargs[:discord_token]
     @discord_channels = kwargs[:discord_channels] || []
@@ -18,7 +20,7 @@ class DiscordServerStrategy < ServerStrategy
     # Set up event handlers
     @bot.ready do |event|
       @bot_user = @bot.profile
-      puts "Discord bot connected as #{@bot_user.username}##{@bot_user.discriminator}"
+      info "Discord bot connected as #{@bot_user.username}##{@bot_user.discriminator}"
     end
 
     @bot.mention do |event|
