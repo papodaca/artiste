@@ -83,6 +83,22 @@ class ChutesHttpClient
     }
   end
 
+  def transcribe_audio(payload)
+    response = self.class.post(
+      "https://chutes-whisper-large-v3.chutes.ai/transcribe",
+      body: payload.to_json,
+      headers: @default_headers,
+      timeout: 300
+    )
+
+    raise "Transcription failed: #{response.code} - #{response.body}" unless response.success?
+
+    {
+      text: JSON.parse(response.body)["text"],
+      prompt_id: response.headers["x-chutes-invocationid"]
+    }
+  end
+
   def generate_music(payload)
     response = self.class.post("https://chutes-diffrhythm.chutes.ai/generate",
       body: payload.to_json,

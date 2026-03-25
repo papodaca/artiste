@@ -1,7 +1,7 @@
 class DiscordServerStrategy < ServerStrategy
   include Logging
 
-  def initialize(*args, **kwargs)
+  def initialize(*_args, **kwargs)
     @discord_token = kwargs[:discord_token]
     @discord_channels = kwargs[:discord_channels] || []
 
@@ -18,7 +18,7 @@ class DiscordServerStrategy < ServerStrategy
     @message_handler = block
 
     # Set up event handlers
-    @bot.ready do |event|
+    @bot.ready do |_event|
       @bot_user = @bot.profile
       info "Discord bot connected as #{@bot_user.username}##{@bot_user.discriminator}"
     end
@@ -89,17 +89,17 @@ class DiscordServerStrategy < ServerStrategy
       "user" => event.user
     }
 
-    # Download attached images if any
-    download_attached_images(message_data, event)
+    # Download attached images and audio if any
+    download_attached_files(message_data, event)
 
     # Check if bot is mentioned or if it's a DM or in allowed channels
     bot_mentioned = event.message.content.include?(@bot_user&.mention)
     is_dm = event.channel.pm?
     is_allowed_channel = @discord_channels.empty? || @discord_channels.include?(event.channel.id)
 
-    if bot_mentioned || is_dm || is_allowed_channel
-      @message_handler.call(message_data, event)
-    end
+    return unless bot_mentioned || is_dm || is_allowed_channel
+
+    @message_handler.call(message_data, event)
   end
 
   def extract_mentions(content)
@@ -112,24 +112,27 @@ class DiscordServerStrategy < ServerStrategy
     mentions
   end
 
-  def download_attached_images(message_data, event)
+  def download_attached_files(message_data, event)
     return unless event.message.attachments.any?
 
     # Initialize attached_files array in message_data if it doesn't exist
     message_data["attached_files"] ||= []
 
-    # Collect URLs for each image attachment
+    # Collect URLs for each image or audio attachment
     event.message.attachments.each do |attachment|
-      next unless is_image_attachment?(attachment)
+      next unless is_image_attachment?(attachment) || is_audio_attachment?(attachment)
 
       message_data["attached_files"] << attachment.url
     end
   end
 
-  private
-
   def is_image_attachment?(attachment)
     # Check if the attachment is an image based on content type
     attachment.content_type&.start_with?("image/") || false
+  end
+
+  def is_audio_attachment?(attachment)
+    # Check if the attachment is audio based on content type
+    attachment.content_type&.start_with?("audio/") || false
   end
 end
