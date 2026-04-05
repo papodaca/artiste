@@ -84,17 +84,27 @@ class ChutesHttpClient
   end
 
   def transcribe_audio(payload)
-    response = self.class.post(
-      "https://chutes-whisper-large-v3.chutes.ai/transcribe",
-      body: payload.to_json,
-      headers: @default_headers,
-      timeout: 300
-    )
+    response = retry_on_failure do
+      self.class.post(
+        "https://chutes-whisper-large-v3.chutes.ai/transcribe",
+        body: payload.to_json,
+        headers: @default_headers,
+        timeout: 300
+      )
+    end
 
     raise "Transcription failed: #{response.code} - #{response.body}" unless response.success?
 
+    parsed = JSON.parse(response.body)
+    text = case parsed
+    when Hash then parsed["text"]
+    when Array then parsed.first.is_a?(Hash) ? parsed.first["text"] : parsed.first.to_s
+    when String then parsed
+    else parsed.to_s
+    end
+
     {
-      text: JSON.parse(response.body)["text"],
+      text: text,
       prompt_id: response.headers["x-chutes-invocationid"]
     }
   end
