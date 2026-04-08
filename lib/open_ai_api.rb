@@ -1,4 +1,6 @@
 class OpenAiApi < Sinatra::Base
+  include Logging
+
   configure do
     set :threaded, false
 
@@ -156,8 +158,7 @@ class OpenAiApi < Sinatra::Base
       {error: "Invalid JSON in request body"}.to_json
     rescue => e
       # Log the error for debugging
-      puts "Error in /image/generations: #{e.class.name}: #{e.message}"
-      puts e.backtrace.join("\n")
+      error "Error in /image/generations: #{e.class.name}: #{e.message}\n#{e.backtrace.join("\n")}"
 
       status 500
       {error: "Internal server error: #{e.class.name}: #{e.message}"}.to_json

@@ -27,9 +27,11 @@ gem "websocket-eventmachine-server"
 gem "zeitwerk"
 
 group :development, :test do
+  gem "listen"
   gem "factory_bot"
   gem "pry"
   gem "rack-test", require: "rack/test"
+  gem "ruby-lsp", require: false
   gem "rake"
   gem "reline"
   gem "rspec"

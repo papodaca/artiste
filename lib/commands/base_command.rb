@@ -1,12 +1,13 @@
 class BaseCommand
-  attr_reader :server, :message, :parsed_result, :user_settings, :debug_log_enabled
+  include Logging
 
-  def initialize(server, message, parsed_result = nil, user_settings = nil, debug_log_enabled = false)
+  attr_reader :server, :message, :parsed_result, :user_settings
+
+  def initialize(server, message, parsed_result = nil, user_settings = nil)
     @server = server
     @message = message
     @parsed_result = parsed_result
     @user_settings = user_settings
-    @debug_log_enabled = debug_log_enabled
   end
 
   def execute
@@ -14,11 +15,6 @@ class BaseCommand
   end
 
   private
-
-  def debug_log(message)
-    return unless debug_log_enabled
-    puts "[DEBUG] #{Time.now.strftime("%Y-%m-%d %H:%M:%S")} - #{message}"
-  end
 
   def print_settings(out, settings)
     out << "```"

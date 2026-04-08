@@ -34,6 +34,7 @@ class VideoCommand < BaseCommand
   def self.parse_aspect_ratio(aspect_ratio)
     parts = aspect_ratio.split(":")
     return 1.0 if parts.size != 2
+
     parts.first.to_f / parts.last.to_f
   end
 
@@ -73,9 +74,7 @@ class VideoCommand < BaseCommand
 
     # Parse fast parameter (for wan2.2)
     fast = true
-    if /--slow/.match?(prompt)
-      fast = false
-    end
+    fast = false if /--slow/.match?(prompt)
 
     prompt = prompt
       .gsub(/--wan(?:=\s+)?[^\s]+/, "")
@@ -94,7 +93,7 @@ class VideoCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling video command")
+    debug("Handling video command")
     prompt = parsed_result[:prompt]
     resolution = parsed_result[:resolution]
     seed = parsed_result[:seed]
@@ -104,7 +103,7 @@ class VideoCommand < BaseCommand
     guidance_scale = parsed_result[:guidance_scale]
     guidance_scale_2 = parsed_result[:guidance_scale_2]
     fast = parsed_result[:fast]
-    wan_version = parsed_result[:wan_version] || "2.1"  # Default to 2.1 for backward compatibility
+    wan_version = parsed_result[:wan_version] || "2.1" # Default to 2.1 for backward compatibility
     negative_prompt = parsed_result[:negative_prompt]
 
     # Check if we have an image source (attached images, image parameter, or task_id)
@@ -121,22 +120,24 @@ class VideoCommand < BaseCommand
 
     # Validate that we don't have multiple images
     if has_image && total_images > 1
-      server.respond(message, "❌ Video generation from image only supports one image at a time. You provided #{total_images} images.")
+      server.respond(message,
+        "❌ Video generation from image only supports one image at a time. You provided #{total_images} images.")
       return
     end
 
     if prompt.nil? || prompt.strip.empty?
-      debug_log("No prompt provided for video command")
+      debug("No prompt provided for video command")
       server.respond(message, "❌ Please provide a prompt for the video command.")
       return
     end
 
     if wan_version == "2.2" && !has_image
-      server.respond(message, "❌ WAN 2.2 requires an image. Please provide an image using --image, attach an image, or use --task with an existing image.")
+      server.respond(message,
+        "❌ WAN 2.2 requires an image. Please provide an image using --image, attach an image, or use --task with an existing image.")
       return
     end
 
-    debug_log("Generating video for prompt: #{prompt}#{" with image" if has_image}")
+    debug("Generating video for prompt: #{prompt}#{" with image" if has_image}")
 
     begin
       # Create generation task at the beginning
@@ -150,14 +151,17 @@ class VideoCommand < BaseCommand
 
       # Then generate the video and update the message
       if wan_version == "2.2"
-        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
+        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2,
+          fast, wan_version, negative_prompt, generation_task)
       elsif has_image
-        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
+        generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2,
+          fast, wan_version, negative_prompt, generation_task)
       else
-        generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
+        generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt,
+          generation_task)
       end
     rescue => e
-      debug_log("Error generating video: #{e.message}")
+      debug("Error generating video: #{e.message}")
       # Mark task as failed if it exists
       if defined?(generation_task) && generation_task
         mark_generation_task_failed(generation_task, e.message)
@@ -168,7 +172,8 @@ class VideoCommand < BaseCommand
 
   private
 
-  def generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt, generation_task)
+  def generate_video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, negative_prompt,
+    generation_task)
     # Get API token from environment variables
     api_token = ENV["CHUTES_TOKEN"]
 
@@ -212,20 +217,19 @@ class VideoCommand < BaseCommand
     server.update(
       message,
       reply,
-      debug_log_enabled ? parsed_result.to_json : "",
+      debug? ? parsed_result.to_json : "",
       File.open(video_path, "rb"),
       generation_task.output_filename
     )
 
-    if defined?(PhotoGalleryWebSocket)
-      PhotoGalleryWebSocket.notify_new_photo(video_path, generation_task.to_h)
-    end
+    PhotoGalleryWebSocket.notify_new_photo(video_path, generation_task.to_h) if defined?(PhotoGalleryWebSocket)
   rescue => e
-    debug_log("Error generating video: #{e.message}")
+    debug("Error generating video: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the video: #{e.message}")
   end
 
-  def generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2, fast, wan_version, negative_prompt, generation_task)
+  def generate_image2video(prompt, reply, resolution, seed, steps, shift, frames, guidance_scale, guidance_scale_2,
+    fast, wan_version, negative_prompt, generation_task)
     require "base64"
     require "httparty"
     require "tempfile"
@@ -248,7 +252,7 @@ class VideoCommand < BaseCommand
     image_param = parsed_result[:image].is_a?(Array) ? parsed_result[:image].first : parsed_result[:image]
     task_id = parsed_result[:task_id]
 
-    debug_log("image_param: #{image_param}, task_id: #{task_id}")
+    debug("image_param: #{image_param}, task_id: #{task_id}")
 
     # Process attached images first (from message attachments)
     if message["attached_files"]&.any?
@@ -289,7 +293,7 @@ class VideoCommand < BaseCommand
         "720*1280" => "720p",
         "832*480" => "480p",
         "480*832" => "480p",
-        "1024*1024" => "480p"  # Default to 480p for square
+        "1024*1024" => "480p" # Default to 480p for square
       }
 
       payload = {
@@ -336,21 +340,19 @@ class VideoCommand < BaseCommand
     server.update(
       message,
       reply,
-      debug_log_enabled ? parsed_result.to_json : "",
+      debug? ? parsed_result.to_json : "",
       File.open(video_path, "rb"),
       generation_task.output_filename
     )
 
-    if defined?(PhotoGalleryWebSocket)
-      PhotoGalleryWebSocket.notify_new_photo(video_path, generation_task.to_h)
-    end
+    PhotoGalleryWebSocket.notify_new_photo(video_path, generation_task.to_h) if defined?(PhotoGalleryWebSocket)
   rescue => e
-    debug_log("Error generating video from image: #{e.message}")
+    debug("Error generating video from image: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the video from image: #{e.message}")
   end
 
   def create_generation_task
-    debug_log("Creating generation task")
+    debug("Creating generation task")
 
     # Handle case where user_settings is nil (e.g., in tests)
     user_id = user_settings ? user_settings.user_id : "test_user"
@@ -380,38 +382,38 @@ class VideoCommand < BaseCommand
       queued_at: Time.now
     )
 
-    debug_log("Created generation task #{task.id} with workflow type: #{workflow_type}")
+    debug("Created generation task #{task.id} with workflow type: #{workflow_type}")
     task
   rescue => e
-    debug_log("Error creating generation task: #{e.message}")
+    debug("Error creating generation task: #{e.message}")
     raise "Failed to create generation task: #{e.message}"
   end
 
   def update_generation_task_started(task)
-    debug_log("Updating generation task #{task.id} as started")
+    debug("Updating generation task #{task.id} as started")
 
     task.mark_processing
-    debug_log("Updated generation task #{task.id} as started")
+    debug("Updated generation task #{task.id} as started")
   rescue => e
-    debug_log("Error updating generation task as started: #{e.message}")
+    debug("Error updating generation task as started: #{e.message}")
   end
 
   def update_generation_task_completed(task, prompt_id)
-    debug_log("Updating generation task #{task.id} as completed")
+    debug("Updating generation task #{task.id} as completed")
 
     task.mark_completed("chutes_#{Time.now.to_i}.mp4", prompt_id)
-    debug_log("Updated generation task #{task.id} as completed with processing time: #{task.processing_time_seconds}s")
+    debug("Updated generation task #{task.id} as completed with processing time: #{task.processing_time_seconds}s")
   rescue => e
-    debug_log("Error updating generation task as completed: #{e.message}")
+    debug("Error updating generation task as completed: #{e.message}")
   end
 
   def mark_generation_task_failed(task, error_message)
-    debug_log("Marking generation task #{task.id} as failed")
+    debug("Marking generation task #{task.id} as failed")
 
     task.mark_failed(error_message)
-    debug_log("Marked generation task #{task.id} as failed")
+    debug("Marked generation task #{task.id} as failed")
   rescue => e
-    debug_log("Error marking generation task as failed: #{e.message}")
+    debug("Error marking generation task as failed: #{e.message}")
   end
 
   def validate_and_convert_image(image_data, source_description = "image")
@@ -435,7 +437,7 @@ class VideoCommand < BaseCommand
 
     # Convert to PNG if it's not already in PNG format
     unless image_data[0..10].include?("PNG")
-      debug_log("Converting #{source_description} to PNG format")
+      debug("Converting #{source_description} to PNG format")
 
       # Create a temporary file for the original image
       temp_input = Tempfile.new(["original_image", ".bin"])
@@ -450,13 +452,11 @@ class VideoCommand < BaseCommand
       begin
         # Use ImageMagick to convert to PNG
         convert_result = system("magick convert \"#{temp_input.path}\" \"#{temp_output.path}\"")
-        unless convert_result
-          raise "Failed to convert #{source_description} to PNG using ImageMagick"
-        end
+        raise "Failed to convert #{source_description} to PNG using ImageMagick" unless convert_result
 
         # Read the converted PNG data
         image_data = File.binread(temp_output.path)
-        debug_log("Successfully converted #{source_description} to PNG")
+        debug("Successfully converted #{source_description} to PNG")
       ensure
         # Clean up temporary files
         temp_input.unlink
@@ -468,20 +468,16 @@ class VideoCommand < BaseCommand
   end
 
   def download_image(url)
-    debug_log("Downloading image from: #{url}")
+    debug("Downloading image from: #{url}")
 
     # Validate URL
-    unless url&.match?(URI::DEFAULT_PARSER.make_regexp)
-      raise "Invalid image URL: #{url}"
-    end
+    raise "Invalid image URL: #{url}" unless url&.match?(URI::DEFAULT_PARSER.make_regexp)
 
     # Download the image
     response = HTTParty.get(url)
 
     # Check if the request was successful
-    unless response.success?
-      raise "Failed to download image: HTTP error #{response.code} - #{response.message}"
-    end
+    raise "Failed to download image: HTTP error #{response.code} - #{response.message}" unless response.success?
 
     image_data = response.body
 
@@ -496,7 +492,7 @@ class VideoCommand < BaseCommand
   end
 
   def find_task_by_filename(filename)
-    debug_log("Looking up task by filename: #{filename}")
+    debug("Looking up task by filename: #{filename}")
 
     # Validate filename format
     unless /^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/i.match?(filename)
@@ -505,44 +501,32 @@ class VideoCommand < BaseCommand
 
     # Find the task record by output_filename
     task = GenerationTask.where(output_filename: filename).first
-    unless task
-      raise "No task found with filename: #{filename}"
-    end
+    raise "No task found with filename: #{filename}" unless task
 
     # Check if task has required fields
-    unless task.output_filename
-      raise "Task #{task.id} does not have an associated output filename"
-    end
+    raise "Task #{task.id} does not have an associated output filename" unless task.output_filename
 
-    unless task.completed_at
-      raise "Task #{task.id} is not completed"
-    end
+    raise "Task #{task.id} is not completed" unless task.completed_at
 
-    debug_log("Found task #{task.id} for filename: #{filename}")
+    debug("Found task #{task.id} for filename: #{filename}")
     task
   end
 
   def load_image_from_task(task_id)
-    debug_log("Loading image from task ID: #{task_id}")
+    debug("Loading image from task ID: #{task_id}")
 
     # Find the task record
     task = GenerationTask[task_id]
-    unless task
-      raise "Task with ID #{task_id} not found"
-    end
+    raise "Task with ID #{task_id} not found" unless task
 
     # Check if task has an output filename
-    unless task.output_filename
-      raise "Task #{task_id} does not have an associated image file"
-    end
+    raise "Task #{task_id} does not have an associated image file" unless task.output_filename
 
     # Construct the full path to the image file
     image_path = File.join(task.file_path, task.output_filename)
 
     # Check if the file exists
-    unless File.exist?(image_path)
-      raise "Image file not found at: #{image_path}"
-    end
+    raise "Image file not found at: #{image_path}" unless File.exist?(image_path)
 
     # Read the image data
     image_data = File.binread(image_path)
@@ -550,10 +534,10 @@ class VideoCommand < BaseCommand
     # Validate and convert the image
     image_data = validate_and_convert_image(image_data, "file")
 
-    debug_log("Successfully loaded image from task #{task_id}: #{image_path}")
+    debug("Successfully loaded image from task #{task_id}: #{image_path}")
     image_data
   rescue => e
-    debug_log("Error loading image from task #{task_id}: #{e.message}")
+    debug("Error loading image from task #{task_id}: #{e.message}")
     raise "Failed to load image from task #{task_id}: #{e.message}"
   end
 end

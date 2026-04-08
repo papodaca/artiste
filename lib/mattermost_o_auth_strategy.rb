@@ -1,4 +1,6 @@
 class MattermostOAuthStrategy
+  include Logging
+
   attr_reader :redirect_uri, :authorise_uri, :token_uri
 
   def initialize
@@ -62,12 +64,11 @@ class MattermostOAuthStrategy
         token_type: token_data["token_type"]
       }
     else
-      puts "HTTP Error: #{response.code} - #{response.body}"
+      error "HTTP Error: #{response.code} - #{response.body}"
       nil
     end
   rescue => e
-    puts "Unexpected error getting access token: #{e.message}"
-    puts e.backtrace.join("\n") if ENV["DEBUG"]
+    error "Unexpected error getting access token: #{e.message}\n#{e.backtrace.join("\n")}"
     nil
   end
 
@@ -83,11 +84,11 @@ class MattermostOAuthStrategy
     if response.code == 200
       JSON.parse(response.body)
     else
-      puts "Error getting user info: #{response.code} - #{response.body}"
+      error "Error getting user info: #{response.code} - #{response.body}"
       nil
     end
   rescue => e
-    puts "Unexpected error getting user info: #{e.message}"
+    error "Unexpected error getting user info: #{e.message}\n#{e.backtrace.join("\n")}"
     nil
   end
 
@@ -122,11 +123,11 @@ class MattermostOAuthStrategy
         token_type: token_data["token_type"]
       }
     else
-      puts "Error refreshing token: #{response.code} - #{response.body}"
+      error "Error refreshing token: #{response.code} - #{response.body}"
       nil
     end
   rescue => e
-    puts "Unexpected error refreshing token: #{e.message}"
+    error "Unexpected error refreshing token: #{e.message}\n#{e.backtrace.join("\n")}"
     nil
   end
 end

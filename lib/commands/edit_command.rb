@@ -12,7 +12,7 @@ class EditCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling edit command")
+    debug("Handling edit command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -50,7 +50,7 @@ class EditCommand < BaseCommand
     image_sources << image_params.join(", ") if image_params.any?
     image_sources << "from task " + task_id.to_s if task_id
 
-    debug_log("Editing #{image_sources.join(" and ")} with prompt: #{prompt}")
+    debug("Editing #{image_sources.join(" and ")} with prompt: #{prompt}")
 
     begin
       total_images = (attached_images&.size || 0) + (image_params&.size || 0) + (task_id ? 1 : 0)
@@ -133,7 +133,7 @@ class EditCommand < BaseCommand
       Kernel.system("exiftool -config exiftool_config -PNG:prompt=\"#{generation_task.prompt}\" -overwrite_original #{image_path} > /dev/null 2>&1")
 
       exif_data = {}
-      debug_log("Reading EXIF data from image file: #{image_path}")
+      debug("Reading EXIF data from image file: #{image_path}")
       exif_output = `exiftool -j "#{image_path}" 2>/dev/null`
       begin
         exif_json = JSON.parse(exif_output)
@@ -142,15 +142,15 @@ class EditCommand < BaseCommand
           %w[SourceFile ExifToolVersion FileName Directory FilePermissions FileModifyDate FileAccessDate FileInodeChangeDate].each do |k|
             exif_data.delete(k)
           end
-          debug_log("Successfully read EXIF data from image")
+          debug("Successfully read EXIF data from image")
         end
       rescue JSON::ParserError => e
-        debug_log("Failed to parse EXIF JSON: #{e.message}")
+        debug("Failed to parse EXIF JSON: #{e.message}")
       end
 
       generation_task.set_exif_data(exif_data)
     rescue => e
-      debug_log("Error editing image: #{e.message}\n#{e.backtrace.join("\n")}")
+      debug("Error editing image: #{e.message}\n#{e.backtrace.join("\n")}")
       # Mark task as failed if it exists
       if defined?(generation_task) && generation_task
         mark_generation_task_failed(generation_task, e.message)
@@ -182,7 +182,7 @@ class EditCommand < BaseCommand
 
     # Convert to PNG if it's not already in PNG format
     unless image_data[0..10].include?("PNG")
-      debug_log("Converting #{source_description} to PNG format")
+      debug("Converting #{source_description} to PNG format")
 
       # Create a temporary file for the original image
       temp_input = Tempfile.new(["original_image", ".bin"])
@@ -203,7 +203,7 @@ class EditCommand < BaseCommand
 
         # Read the converted PNG data
         image_data = File.binread(temp_output.path)
-        debug_log("Successfully converted #{source_description} to PNG")
+        debug("Successfully converted #{source_description} to PNG")
       ensure
         # Clean up temporary files
         temp_input.unlink
@@ -215,7 +215,7 @@ class EditCommand < BaseCommand
   end
 
   def download_image(url)
-    debug_log("Downloading image from: #{url}")
+    debug("Downloading image from: #{url}")
 
     # Validate URL
     unless url&.match?(URI::DEFAULT_PARSER.make_regexp)
@@ -243,7 +243,7 @@ class EditCommand < BaseCommand
   end
 
   def find_task_by_filename(filename)
-    debug_log("Looking up task by filename: #{filename}")
+    debug("Looking up task by filename: #{filename}")
 
     # Validate filename format
     unless /^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/i.match?(filename)
@@ -265,12 +265,12 @@ class EditCommand < BaseCommand
       raise "Task #{task.id} is not completed"
     end
 
-    debug_log("Found task #{task.id} for filename: #{filename}")
+    debug("Found task #{task.id} for filename: #{filename}")
     task
   end
 
   def load_image_from_task(task_id)
-    debug_log("Loading image from task ID: #{task_id}")
+    debug("Loading image from task ID: #{task_id}")
 
     # Find the task record
     task = GenerationTask[task_id]
@@ -297,15 +297,15 @@ class EditCommand < BaseCommand
     # Validate and convert the image
     image_data = validate_and_convert_image(image_data, "file")
 
-    debug_log("Successfully loaded image from task #{task_id}: #{image_path}")
+    debug("Successfully loaded image from task #{task_id}: #{image_path}")
     image_data
   rescue => e
-    debug_log("Error loading image from task #{task_id}: #{e.message}")
+    debug("Error loading image from task #{task_id}: #{e.message}")
     raise "Failed to load image from task #{task_id}: #{e.message}"
   end
 
   def create_generation_task
-    debug_log("Creating generation task")
+    debug("Creating generation task")
 
     # Create a generation task record
     task = GenerationTask.create(
@@ -319,37 +319,37 @@ class EditCommand < BaseCommand
       queued_at: Time.now
     )
 
-    debug_log("Created generation task #{task.id}")
+    debug("Created generation task #{task.id}")
     task
   rescue => e
-    debug_log("Error creating generation task: #{e.message}")
+    debug("Error creating generation task: #{e.message}")
     raise "Failed to create generation task: #{e.message}"
   end
 
   def update_generation_task_started(task)
-    debug_log("Updating generation task #{task.id} as started")
+    debug("Updating generation task #{task.id} as started")
 
     task.mark_processing
-    debug_log("Updated generation task #{task.id} as started")
+    debug("Updated generation task #{task.id} as started")
   rescue => e
-    debug_log("Error updating generation task as started: #{e.message}")
+    debug("Error updating generation task as started: #{e.message}")
   end
 
   def update_generation_task_completed(task, prompt_id)
-    debug_log("Updating generation task #{task.id} as completed")
+    debug("Updating generation task #{task.id} as completed")
 
     task.mark_completed("chutes_#{Time.now.to_i}.png", prompt_id)
-    debug_log("Updated generation task #{task.id} as completed with processing time: #{task.processing_time_seconds}s")
+    debug("Updated generation task #{task.id} as completed with processing time: #{task.processing_time_seconds}s")
   rescue => e
-    debug_log("Error updating generation task as completed: #{e.message}")
+    debug("Error updating generation task as completed: #{e.message}")
   end
 
   def mark_generation_task_failed(task, error_message)
-    debug_log("Marking generation task #{task.id} as failed")
+    debug("Marking generation task #{task.id} as failed")
 
     task.mark_failed(error_message)
-    debug_log("Marked generation task #{task.id} as failed")
+    debug("Marked generation task #{task.id} as failed")
   rescue => e
-    debug_log("Error marking generation task as failed: #{e.message}")
+    debug("Error marking generation task as failed: #{e.message}")
   end
 end

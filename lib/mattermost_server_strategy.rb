@@ -1,4 +1,6 @@
 class MattermostServerStrategy < ServerStrategy
+  include Logging
+
   def initialize(*_args, **kwargs)
     @mattermost_url = kwargs[:mattermost_url]
     @mattermost_token = kwargs[:mattermost_token]
@@ -59,7 +61,7 @@ class MattermostServerStrategy < ServerStrategy
     end
 
     ws.onclose do |_code, _reason|
-      raise "socket closed"
+      warn "WebSocket connection closed"
     end
   end
 

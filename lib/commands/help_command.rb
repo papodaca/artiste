@@ -15,19 +15,19 @@ class HelpCommand < BaseCommand
         --width|-w <pixels>    Set image width
 
       Example: "a beautiful sunset --ar 16:9 --steps 20 --private"
-      
+
       Available commands:
 
       /set_settings [options] - Set default settings for image generation
         Options (same parameters as image generation):
           --delete|-d <key>      Delete a setting (e.g., --delete aspect_ratio)
-        
+
         Examples:
           /set_settings --ar 3:2 --steps 30
           /set_settings --delete aspect_ratio
-      
+
       /get_settings - Display current default settings
-      
+
       /details <image_name|prompt_id> - Show generation details for a specific image
         Example: /details output_20241230_123456.png
 
@@ -36,7 +36,7 @@ class HelpCommand < BaseCommand
           --model|-m <name>       Set model (qwen, qwen-coder, llama, glm-5, glm-5-flash, glm-4, deepseek-r1, deepseek-v3 and gpt-oss)
           --temperature|-t <temp> Set temperature (default: 0.7)
           --no-system             Disable Artiste's system prompt
-      
+
       /edit <prompt> [options] - Edit an image based on your prompt
         Options:
           --image|-i <url|filename> Specify image URL or filename to edit
@@ -50,15 +50,15 @@ class HelpCommand < BaseCommand
           --shift|-S <number>       Set shift parameter (for qwen model)
           --steps|-s <number>       Set number of generation steps, more steps more better
           --width|-w <pixels>       Set image width
-        
+
         You can provide images in multiple ways:
           - Attach images directly to your message
           - Use --image with a URL (e.g., --image https://example.com/image.png)
           - Use --image with a filename, for previous gen (e.g., --image output_20241230_123456.png)
           - Use --task with a task ID (e.g., --task 12345)
-        
+
         Example: /edit make this image more vibrant --image output_20241230_123456.png --steps 20
-      
+
       /video <prompt> [options] - Generate a video based on your prompt or from an image
         Options:
           --frames|-f <number>      Set number of frames (default: 81)
@@ -73,15 +73,15 @@ class HelpCommand < BaseCommand
           --wan|-W <2.1|2.2>        Specify the WAN model version, 2.2 requires an image
           --image|-i <url|filename> Specify image URL or filename to convert to video
           --task|-t <id>            Specify task ID of previously generated image to convert to video
-        
+
         You can provide images in multiple ways:
           - Attach images directly to your message
           - Use --image with a URL (e.g., --image https://example.com/image.png)
           - Use --image with a filename, for previous gen (e.g., --image output_20241230_123456.png)
           - Use --task with a task ID (e.g., --task 12345)
-        
+
         Note: Only one image can be used for video generation at a time.
-        
+
         Examples:
           /video a beautiful sunset --ar 16:9 --frames 120 --guidance 7.0
           /video make this image animated --image output_20241230_123456.png
@@ -102,14 +102,29 @@ class HelpCommand < BaseCommand
           - Attach audio files directly to your message
           - Use --audio with a URL (e.g., --audio https://example.com/song.mp3)
           - Use --audio with a filename from a previous generation
-          
+
         Examples:
           /music lo-fi hip hop beats --duration 120
           /music electronic dance music --lyrics "dancing through the night" --cfg 5.0
           /music --audio reference_track.mp3 --duration 180
 
+      /transcribe [options] - Transcribe audio to text using Whisper Large v3
+        Options:
+          --audio|-a <url>        Specify audio URL to transcribe
+          --language|-l <code>    Set language code (e.g., en, fr, de; auto-detected if omitted)
+
+        You can provide audio in multiple ways:
+          - Attach an audio file directly to your message
+          - Use --audio with a URL (e.g., --audio https://example.com/recording.mp3)
+
+        Supported formats: WAV, MP3, OGG, FLAC, M4A, AAC (max 5 MB)
+
+        Examples:
+          /transcribe --language en (with attached audio)
+          /transcribe --audio https://example.com/podcast.mp3
+
       /help - Show this help message
-      
+
       Preset management commands:
       /create_preset <name> <prompt> [options] - Create a new preset with prompt and parameters
       /list_presets - List all available presets
@@ -120,7 +135,7 @@ class HelpCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling help command")
+    debug("Handling help command")
     server.respond(message, help_text)
   end
 end

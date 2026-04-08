@@ -9,8 +9,8 @@ describe UnknownCommand do
 
   describe "#execute" do
     it "logs handling of unknown command" do
-      expect(command).to receive(:debug_log).with("Handling unknown command")
-      expect(command).to receive(:debug_log).with("Unknown command error: Unknown command")
+      expect(command).to receive(:debug).with("Handling unknown command")
+      expect(command).to receive(:debug).with("Unknown command error: Unknown command")
       expect(server_strategy).to receive(:respond).with(message, "❌ Unknown command")
 
       command.execute
@@ -20,8 +20,8 @@ describe UnknownCommand do
       let(:parsed_result) { {error: "Command not found: /invalid"} }
 
       it "uses the specific error message" do
-        expect(command).to receive(:debug_log).with("Handling unknown command")
-        expect(command).to receive(:debug_log).with("Unknown command error: Command not found: /invalid")
+        expect(command).to receive(:debug).with("Handling unknown command")
+        expect(command).to receive(:debug).with("Unknown command error: Command not found: /invalid")
         expect(server_strategy).to receive(:respond).with(message, "❌ Command not found: /invalid")
 
         command.execute
@@ -32,8 +32,8 @@ describe UnknownCommand do
       let(:parsed_result) { {} }
 
       it "uses a default error message" do
-        expect(command).to receive(:debug_log).with("Handling unknown command")
-        expect(command).to receive(:debug_log).with("Unknown command error: Unknown command")
+        expect(command).to receive(:debug).with("Handling unknown command")
+        expect(command).to receive(:debug).with("Unknown command error: Unknown command")
         expect(server_strategy).to receive(:respond).with(message, "❌ Unknown command")
 
         command.execute

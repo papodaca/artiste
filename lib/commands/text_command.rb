@@ -41,19 +41,19 @@ class TextCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling text command")
+    debug("Handling text command")
     prompt = parsed_result[:prompt]
     model = parsed_result[:model]
     system_prompt = parsed_result[:system_prompt]
     temperature = parsed_result[:temperature]
 
     if prompt.nil? || prompt.strip.empty?
-      debug_log("No prompt provided for text command")
+      debug("No prompt provided for text command")
       server.respond(message, "❌ Please provide a prompt for the text command.")
       return
     end
 
-    debug_log("Generating text for prompt{#{model}}: #{prompt}")
+    debug("Generating text for prompt{#{model}}: #{prompt}")
 
     begin
       # First, send an initial response
@@ -63,7 +63,7 @@ class TextCommand < BaseCommand
       # Then stream the response and update the message
       stream_text(prompt, reply, model, system_prompt, temperature)
     rescue => e
-      debug_log("Error generating text: #{e.message}")
+      debug("Error generating text: #{e.message}")
       server.respond(message, "❌ Sorry, I encountered an error while generating the text response.")
     end
   end
@@ -120,7 +120,7 @@ class TextCommand < BaseCommand
     # Final update to remove the thinking indicator if needed
     server.update(message, reply, response_text) if response_text != ""
   rescue => e
-    debug_log("Error streaming text: #{e.message}")
+    debug("Error streaming text: #{e.message}")
     server.update(message, reply, "❌ Sorry, I encountered an error while generating the text response.")
   end
 

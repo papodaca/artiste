@@ -54,7 +54,7 @@ class MusicCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling music command")
+    debug("Handling music command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -90,7 +90,7 @@ class MusicCommand < BaseCommand
       return
     end
 
-    debug_log("Generating music - style: #{style_prompt}, lyrics: #{lyrics}, duration: #{duration}s")
+    debug("Generating music - style: #{style_prompt}, lyrics: #{lyrics}, duration: #{duration}s")
 
     begin
       generation_task = create_generation_task
@@ -144,7 +144,7 @@ class MusicCommand < BaseCommand
         album_art_result = client.generate_image(album_art_payload, model: "z-image")
       rescue => e
         album_art_error = e
-        debug_log("Album art generation failed: #{e.message}")
+        debug("Album art generation failed: #{e.message}")
       end
 
       music_thread.join
@@ -170,7 +170,7 @@ class MusicCommand < BaseCommand
       if album_art_result && !album_art_error
         cover_path = "#{output_path}/cover_#{base_filename}.png"
         File.binwrite(cover_path, album_art_result[:image_data])
-        debug_log("Saved album art to #{cover_path}")
+        debug("Saved album art to #{cover_path}")
 
         system("ffmpeg -y -i \"#{temp_wav.path}\" -i \"#{cover_path}\" -map 0 -map 1 -c:a aac -b:a 256k -c:v mjpeg -disposition:v:0 attached_pic \"#{final_path}\" > /dev/null 2>&1")
       else
@@ -183,7 +183,7 @@ class MusicCommand < BaseCommand
 
       PhotoGalleryWebSocket.notify_new_photo(final_path, generation_task.to_h) if defined?(PhotoGalleryWebSocket)
     rescue => e
-      debug_log("Error generating music: #{e.message}\n#{e.backtrace.join("\n")}")
+      debug("Error generating music: #{e.message}\n#{e.backtrace.join("\n")}")
       if defined?(generation_task) && generation_task
         mark_generation_task_failed(generation_task, e.message)
       end
@@ -240,7 +240,7 @@ class MusicCommand < BaseCommand
     if is_wav
       result = audio_data
     else
-      debug_log("Converting audio to WAV format (detected format: #{format})")
+      debug("Converting audio to WAV format (detected format: #{format})")
       temp_output = Tempfile.new(["audio_output", ".wav"])
       temp_output.close
 
@@ -260,7 +260,7 @@ class MusicCommand < BaseCommand
   end
 
   def find_task_by_filename(filename)
-    debug_log("Looking up task by filename: #{filename}")
+    debug("Looking up task by filename: #{filename}")
     task = GenerationTask.where(output_filename: filename).first
     raise "No task found with filename: #{filename}" unless task
 
@@ -279,7 +279,7 @@ class MusicCommand < BaseCommand
   end
 
   def create_generation_task
-    debug_log("Creating generation task")
+    debug("Creating generation task")
 
     user_id = user_settings ? user_settings.user_id : "test_user"
     username = user_settings ? user_settings.username : "test_user"
@@ -294,22 +294,22 @@ class MusicCommand < BaseCommand
       queued_at: Time.now
     )
 
-    debug_log("Created generation task #{task.id}")
+    debug("Created generation task #{task.id}")
     task
   end
 
   def update_generation_task_started(task)
-    debug_log("Updating generation task #{task.id} as started")
+    debug("Updating generation task #{task.id} as started")
     task.mark_processing
   end
 
   def update_generation_task_completed(task, prompt_id)
-    debug_log("Updating generation task #{task.id} as completed")
+    debug("Updating generation task #{task.id} as completed")
     task.mark_completed("chutes_#{Time.now.to_i}.m4a", prompt_id)
   end
 
   def mark_generation_task_failed(task, error_message)
-    debug_log("Marking generation task #{task.id} as failed")
+    debug("Marking generation task #{task.id} as failed")
     task.mark_failed(error_message)
   end
 end

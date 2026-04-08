@@ -12,14 +12,14 @@ class SetSettingsCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling set settings command")
+    debug("Handling set settings command")
     settings = parsed_result[:settings]
     delete_keys = parsed_result[:delete_keys] || []
-    debug_log("Settings to update: #{settings.inspect}")
-    debug_log("Keys to delete: #{delete_keys.inspect}")
+    debug("Settings to update: #{settings.inspect}")
+    debug("Keys to delete: #{delete_keys.inspect}")
 
     if settings.empty? && delete_keys.empty?
-      debug_log("No settings or delete operations provided in command")
+      debug("No settings or delete operations provided in command")
       server.respond(message, "❌ No settings or delete operations provided. Use `/help` to see available options.")
       return
     end
@@ -28,7 +28,7 @@ class SetSettingsCommand < BaseCommand
     deleted_keys = []
 
     delete_keys.each do |key|
-      debug_log("Deleting setting: #{key}")
+      debug("Deleting setting: #{key}")
       synonym_key = synonym(key)
       sym = synonym_key.to_sym if synonym_key
       if sym && user_settings.delete_param(sym)
@@ -39,17 +39,17 @@ class SetSettingsCommand < BaseCommand
     # Update user settings
     #
     if settings.has_key?(:aspect_ratio)
-      debug_log("Aspect ratio detected, removing width/height settings")
+      debug("Aspect ratio detected, removing width/height settings")
       settings.delete(:width)
       settings.delete(:height)
     end
     settings.each do |key, value|
-      debug_log("Setting #{key} = #{value}")
+      debug("Setting #{key} = #{value}")
       user_settings.set_param(key.to_sym, value)
     end
 
     user_settings.save
-    debug_log("User settings saved successfully")
+    debug("User settings saved successfully")
 
     # Build response message
     response_parts = []

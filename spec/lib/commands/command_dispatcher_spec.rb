@@ -38,7 +38,6 @@ RSpec.describe CommandDispatcher do
   let(:mattermost) { instance_double("MattermostServerStrategy") }
   let(:message) { {"data" => {"post" => {"id" => "post-id"}}} }
   let(:user_settings) { {theme: "dark"} }
-  let(:debug_log_enabled) { false }
 
   describe ".execute" do
     context "when command type is :help" do
@@ -46,11 +45,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(HelpCommand, execute: "Help response") }
 
       it "creates and executes a HelpCommand" do
-        expect(HelpCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(HelpCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -59,11 +57,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(GetSettingsCommand, execute: "Settings response") }
 
       it "creates and executes a GetSettingsCommand" do
-        expect(GetSettingsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(GetSettingsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -72,11 +69,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(SetSettingsCommand, execute: "Settings updated") }
 
       it "creates and executes a SetSettingsCommand" do
-        expect(SetSettingsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(SetSettingsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -85,11 +81,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(GetDetailsCommand, execute: "Details response") }
 
       it "creates and executes a GetDetailsCommand" do
-        expect(GetDetailsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(GetDetailsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -98,11 +93,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(TextCommand, execute: "Text response") }
 
       it "creates and executes a TextCommand" do
-        expect(TextCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(TextCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -111,15 +105,14 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(UnknownCommand, execute: "Unknown command response") }
 
       it "creates and executes an UnknownCommand" do
-        # The parsed_result should be modified before UnknownCommand.new is called
-        expect(UnknownCommand).to receive(:new) do |_mm, _msg, result, _settings, _debug|
+        expect(UnknownCommand).to receive(:new) do |_mm, _msg, result, _settings|
           expect(result[:type]).to eq(:unknown_command)
           expect(result[:error]).to eq("Unknown command type: invalid_command")
           command_instance
         end
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -128,15 +121,14 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(UnknownCommand, execute: "Unknown command response") }
 
       it "creates and executes an UnknownCommand" do
-        # The parsed_result should be modified before UnknownCommand.new is called
-        expect(UnknownCommand).to receive(:new) do |_mm, _msg, result, _settings, _debug|
+        expect(UnknownCommand).to receive(:new) do |_mm, _msg, result, _settings|
           expect(result[:type]).to eq(:unknown_command)
           expect(result[:error]).to eq("Unknown command type: ")
           command_instance
         end
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -145,11 +137,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(CreatePresetCommand, execute: "Preset created") }
 
       it "creates and executes a CreatePresetCommand" do
-        expect(CreatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(CreatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -158,11 +149,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(ListPresetsCommand, execute: "Presets listed") }
 
       it "creates and executes a ListPresetsCommand" do
-        expect(ListPresetsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(ListPresetsCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -171,11 +161,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(ShowPresetCommand, execute: "Preset shown") }
 
       it "creates and executes a ShowPresetCommand" do
-        expect(ShowPresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(ShowPresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -184,11 +173,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(UpdatePresetCommand, execute: "Preset updated") }
 
       it "creates and executes an UpdatePresetCommand" do
-        expect(UpdatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(UpdatePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -197,11 +185,10 @@ RSpec.describe CommandDispatcher do
       let(:command_instance) { instance_double(DeletePresetCommand, execute: "Preset deleted") }
 
       it "creates and executes a DeletePresetCommand" do
-        expect(DeletePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-          debug_log_enabled).and_return(command_instance)
+        expect(DeletePresetCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
         expect(command_instance).to receive(:execute)
 
-        described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+        described_class.execute(mattermost, message, parsed_result, user_settings)
       end
     end
 
@@ -209,11 +196,10 @@ RSpec.describe CommandDispatcher do
       parsed_result = {type: :help, help_text: "Help information"}
       command_instance = instance_double(HelpCommand, execute: "Help executed successfully")
 
-      expect(HelpCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings,
-        debug_log_enabled).and_return(command_instance)
+      expect(HelpCommand).to receive(:new).with(mattermost, message, parsed_result, user_settings).and_return(command_instance)
       expect(command_instance).to receive(:execute).and_return("Help executed successfully")
 
-      result = described_class.execute(mattermost, message, parsed_result, user_settings, debug_log_enabled)
+      result = described_class.execute(mattermost, message, parsed_result, user_settings)
       expect(result).to eq("Help executed successfully")
     end
   end

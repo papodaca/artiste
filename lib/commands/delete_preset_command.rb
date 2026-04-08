@@ -11,7 +11,7 @@ class DeletePresetCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling delete preset command")
+    debug("Handling delete preset command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -35,14 +35,14 @@ class DeletePresetCommand < BaseCommand
 
     # Delete the preset
     if existing_preset.destroy
-      debug_log("Preset deleted successfully: #{preset_name}")
+      debug("Preset deleted successfully: #{preset_name}")
       server.respond(message, "🗑️ Preset '#{preset_name}' deleted successfully!")
     else
-      debug_log("Failed to delete preset: #{existing_preset.errors.full_messages.join(", ")}")
+      debug("Failed to delete preset: #{existing_preset.errors.full_messages.join(", ")}")
       server.respond(message, "❌ Failed to delete preset '#{preset_name}'. Please try again.")
     end
   rescue => e
-    debug_log("Error deleting preset: #{e.message}\n#{e.backtrace.join("\n")}")
+    debug("Error deleting preset: #{e.message}\n#{e.backtrace.join("\n")}")
     server.respond(message, "❌ Error deleting preset: #{e.message}")
   end
 end

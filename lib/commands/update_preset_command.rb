@@ -12,7 +12,7 @@ class UpdatePresetCommand < BaseCommand
   end
 
   def execute
-    debug_log("Handling update preset command")
+    debug("Handling update preset command")
 
     if parsed_result[:error]
       server.respond(message, "❌ #{parsed_result[:error]}")
@@ -57,7 +57,7 @@ class UpdatePresetCommand < BaseCommand
     existing_preset.example_image = example_image if example_image
 
     if existing_preset.save
-      debug_log("Preset updated successfully: #{preset_name}")
+      debug("Preset updated successfully: #{preset_name}")
       response = "✅ Preset '#{preset_name}' updated successfully!\n" \
                 "📝 New prompt: #{final_params[:prompt]}\n" \
                 "⚙️ New parameters: #{parameters_to_save.inspect}"
@@ -68,11 +68,11 @@ class UpdatePresetCommand < BaseCommand
 
       server.respond(message, response)
     else
-      debug_log("Failed to update preset: #{existing_preset.errors.full_messages.join(", ")}")
+      debug("Failed to update preset: #{existing_preset.errors.full_messages.join(", ")}")
       server.respond(message, "❌ Failed to update preset '#{preset_name}'. Please try again.")
     end
   rescue => e
-    debug_log("Error updating preset: #{e.message}\n#{e.backtrace.join("\n")}")
+    debug("Error updating preset: #{e.message}\n#{e.backtrace.join("\n")}")
     server.respond(message, "❌ Error updating preset: #{e.message}")
   end
 end

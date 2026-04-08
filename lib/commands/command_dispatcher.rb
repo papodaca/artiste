@@ -7,6 +7,7 @@ COMMANDS = {
   video: {match: %r{^/video\s+(.+)}, class: VideoCommand},
   edit: {match: %r{^/edit\s+(.+)}, class: EditCommand},
   music: {match: %r{^/music\s+([\s\S]+)}m, class: MusicCommand},
+  transcribe: {match: %r{^/transcribe(?:\s+([\s\S]*))?}m, class: TranscribeCommand},
   generate: {match: %r{^/generate\s+(.+)}, class: GenerateCommand},
   create_preset: {match: %r{^/create_preset\s+(.+)}, class: CreatePresetCommand},
   list_presets: {match: %r{^/list_presets(?:\s|$)}, class: ListPresetsCommand},
